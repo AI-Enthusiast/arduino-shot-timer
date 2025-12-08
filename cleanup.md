@@ -8,5 +8,5 @@
 6. **✅ COMPLETED - Remove commented/dead code** - Removed all TODO comments, commented-out DEBUG lines, old dead code blocks, and improved function headers with descriptive comments. Removed 18 lines of clutter while preserving all active DEBUG macros. See `cleanup/6/` for details.
 7. **✅ COMPLETED - Improve function organization** - Reorganized all functions into clear, logical sections with hierarchical structure. Added 10 major section headers grouping functions by feature area (State Management, Timer, Review, Settings, Par Times, Sound, Setup, Input Handling). Significantly improved code navigation and maintainability. See `cleanup/7/` for details.
 8. **✅ COMPLETED - Reduce global variables** - Many globals could be encapsulated in structs/classes
-9. **Simplify boundary checking** - Functions like `IncreaseTime()`/`DecreaseTime()` have repetitive boundary checks
+9. **✅ COMPLETED - Simplify boundary checking** - Replaced repetitive switch statements in `AdjustParTime()` with a lookup table stored in PROGMEM. Simplified `CycleSampleWindowAndDisplay()` to eliminate redundant branching. Reduced code size and improved maintainability.
 10. **Better naming** - Some function names could be more descriptive (e.g., `BEEP()` vs `PlayBeepSound()`)

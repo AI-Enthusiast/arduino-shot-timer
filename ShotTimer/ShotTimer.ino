@@ -204,6 +204,27 @@ const uint8_t PAR_CURSOR_MAX = 7;
 const uint8_t PAR_CURSOR_DEFAULT = 4;  // Default to seconds position
 
 //////////////////////////////
+// Par Time Boundary Lookup Table
+//////////////////////////////
+struct ParTimeBoundaries {
+  unsigned long increment;
+  unsigned long max_val;
+  unsigned long min_val;
+};
+
+// Lookup table indexed by cursor position (0-7, with 0 unused)
+const ParTimeBoundaries kParTimeBoundaries[] PROGMEM = {
+  {0, 0, 0},  // Index 0 - unused
+  {PAR_TIME_INCREMENT_1MS, PAR_TIME_MAX_1MS, PAR_TIME_MIN_1MS},       // PAR_CURSOR_1MS
+  {PAR_TIME_INCREMENT_10MS, PAR_TIME_MAX_10MS, PAR_TIME_MIN_10MS},    // PAR_CURSOR_10MS
+  {PAR_TIME_INCREMENT_100MS, PAR_TIME_MAX_100MS, PAR_TIME_MIN_100MS}, // PAR_CURSOR_100MS
+  {PAR_TIME_INCREMENT_1S, PAR_TIME_MAX_1S, PAR_TIME_MIN_1S},          // PAR_CURSOR_1S
+  {PAR_TIME_INCREMENT_10S, PAR_TIME_MAX_10S, PAR_TIME_MIN_10S},       // PAR_CURSOR_10S
+  {PAR_TIME_INCREMENT_1MIN, PAR_TIME_MAX_1MIN, PAR_TIME_MIN_1MIN},    // PAR_CURSOR_1MIN
+  {PAR_TIME_INCREMENT_10MIN, PAR_TIME_MAX_10MIN, PAR_TIME_MIN_10MIN}  // PAR_CURSOR_10MIN
+};
+
+//////////////////////////////
 // Settings Range Constants
 //////////////////////////////
 const uint8_t BEEP_VOL_MIN = 0;
@@ -1125,21 +1146,17 @@ void on_menu_echo_selected(MenuItem* p_menu_item) {
 //////////////////////////////
 
 void CycleSampleWindowAndDisplay(int8_t step) {
-  if (step > 0) {
-    if (g_sample_window == SAMPLE_WINDOW_MAX) {
-      g_sample_window = SAMPLE_WINDOW_MIN;
-    }
-    else {
-      g_sample_window += SAMPLE_WINDOW_STEP;
-    }
+  int16_t new_value = g_sample_window + (step * SAMPLE_WINDOW_STEP);
+
+  // Wrap around at boundaries
+  if (new_value > SAMPLE_WINDOW_MAX) {
+    g_sample_window = SAMPLE_WINDOW_MIN;
+  }
+  else if (new_value < SAMPLE_WINDOW_MIN) {
+    g_sample_window = SAMPLE_WINDOW_MAX;
   }
   else {
-    if (g_sample_window == SAMPLE_WINDOW_MIN) {
-      g_sample_window = SAMPLE_WINDOW_MAX;
-    }
-    else {
-      g_sample_window -= SAMPLE_WINDOW_STEP;
-    }
+    g_sample_window = new_value;
   }
 
   g_lcd.setCursor(0, 1);
@@ -1374,47 +1391,11 @@ void LCDCursor() {
 
 void AdjustParTime(int8_t direction) {
   // direction: 1 for increase, -1 for decrease
-  unsigned long increment = PAR_TIME_INCREMENT_1MS;
-  unsigned long max_val = PAR_TIME_MAX;
-  unsigned long min_val = 0;
 
-  switch (g_par_cursor) {
-    case PAR_CURSOR_1MS: // milliseconds
-      increment = PAR_TIME_INCREMENT_1MS;
-      max_val = PAR_TIME_MAX_1MS;
-      min_val = PAR_TIME_MIN_1MS;
-      break;
-    case PAR_CURSOR_10MS: // tens milliseconds
-      increment = PAR_TIME_INCREMENT_10MS;
-      max_val = PAR_TIME_MAX_10MS;
-      min_val = PAR_TIME_MIN_10MS;
-      break;
-    case PAR_CURSOR_100MS: // hundreds milliseconds
-      increment = PAR_TIME_INCREMENT_100MS;
-      max_val = PAR_TIME_MAX_100MS;
-      min_val = PAR_TIME_MIN_100MS;
-      break;
-    case PAR_CURSOR_1S: // seconds
-      increment = PAR_TIME_INCREMENT_1S;
-      max_val = PAR_TIME_MAX_1S;
-      min_val = PAR_TIME_MIN_1S;
-      break;
-    case PAR_CURSOR_10S: // ten seconds
-      increment = PAR_TIME_INCREMENT_10S;
-      max_val = PAR_TIME_MAX_10S;
-      min_val = PAR_TIME_MIN_10S;
-      break;
-    case PAR_CURSOR_1MIN: // minutes
-      increment = PAR_TIME_INCREMENT_1MIN;
-      max_val = PAR_TIME_MAX_1MIN;
-      min_val = PAR_TIME_MIN_1MIN;
-      break;
-    case PAR_CURSOR_10MIN: // 10 minutes
-      increment = PAR_TIME_INCREMENT_10MIN;
-      max_val = PAR_TIME_MAX_10MIN;
-      min_val = PAR_TIME_MIN_10MIN;
-      break;
-  }
+  // Lookup boundaries from table
+  unsigned long increment = pgm_read_dword(&kParTimeBoundaries[g_par_cursor].increment);
+  unsigned long max_val = pgm_read_dword(&kParTimeBoundaries[g_par_cursor].max_val);
+  unsigned long min_val = pgm_read_dword(&kParTimeBoundaries[g_par_cursor].min_val);
 
   if (direction > 0) {
     // Increase
