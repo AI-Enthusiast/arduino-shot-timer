@@ -1,0 +1,130 @@
+# Function Organization Visual Map
+
+```
+ShotTimer.ino Structure
+═══════════════════════════════════════════════════════════════════
+
+Lines 1-450: HEADERS & SETUP
+├── Hardware documentation
+├── Includes (libraries)
+├── Constants (magic numbers extracted)
+├── Global variables
+└── State management declarations
+
+Lines 451-1953: FUNCTIONS
+│
+├─── STATE MANAGEMENT (Lines 459-598) ─────────────────────────┐
+│    ├─ State Entry Handlers (11)                              │
+│    ├─ State Exit Handlers (11)                               │
+│    ├─ State Queries (3)                                      │
+│    └─ Menu Rendering (1)                                     │
+│                                                               │
+├─── AUDIO INPUT (Lines 616-650) ──────────────────────────────┤
+│    └─ SampleSound() - Mic sampling                           │
+│                                                               │
+├─── TIMER FUNCTIONS (Lines 652-771) ──────────────────────────┤
+│    ├─ on_menu_start_selected() - Initialize                  │
+│    ├─ RunTimer() - Main loop                                 │
+│    ├─ ParBeeps() - Par time alerts                           │
+│    ├─ StopTimer() - Terminate                                │
+│    └─ RecordShot() - Log shots                               │
+│                                                               │
+├─── SHOT REVIEW (Lines 773-897) ──────────────────────────────┤
+│    ├─ on_menu_review_selected()                              │
+│    ├─ DisplayShotReview()                                    │
+│    ├─ NextShot() / PreviousShot()                            │
+│    └─ RateOfFire()                                           │
+│                                                               │
+├─── SETTINGS FUNCTIONS (Lines 899-1175) ──────────────────────┤
+│    │                                                          │
+│    ├──┬─ START DELAY (903-980)                               │
+│    │  ├─ on_menu_start_delay_selected()                      │
+│    │  ├─ CycleValueAndDisplay() helper                       │
+│    │  ├─ Increase/DecreaseDelay()                            │
+│    │  └─ StartDelay()                                        │
+│    │                                                          │
+│    ├──┬─ RATE OF FIRE (981-1009)                             │
+│    │  ├─ on_menu_rof_selected()                              │
+│    │  └─ ToggleIncludeDraw()                                 │
+│    │                                                          │
+│    ├──┬─ BUZZER VOLUME (1011-1065)                           │
+│    │  ├─ on_menu_buzzer_selected()                           │
+│    │  ├─ CycleIntValueAndDisplay() helper                    │
+│    │  └─ Increase/DecreaseBeepVol()                          │
+│    │                                                          │
+│    ├──┬─ SENSITIVITY (1067-1102)                             │
+│    │  ├─ on_menu_sensitivity_selected()                      │
+│    │  ├─ Increase/DecreaseSensitivity()                      │
+│    │  └─ SensToThreshold()                                   │
+│    │                                                          │
+│    └──┬─ ECHO PROTECTION (1104-1175)                         │
+│       ├─ on_menu_echo_selected()                             │
+│       ├─ CycleSampleWindowAndDisplay() helper                │
+│       └─ Increase/DecreaseEchoProtect()                      │
+│                                                               │
+├─── PAR TIME FUNCTIONS (Lines 1177-1452) ─────────────────────┤
+│    │                                                          │
+│    ├──┬─ ENABLE/DISABLE (1181-1209)                          │
+│    │  ├─ on_menu_par_state_selected()                        │
+│    │  └─ ToggleParState()                                    │
+│    │                                                          │
+│    ├──┬─ MANAGE TIMES (1211-1277)                            │
+│    │  ├─ on_menu_par_times_selected()                        │
+│    │  ├─ DisplayParInfo()                                    │
+│    │  └─ ParDown() / ParUp()                                 │
+│    │                                                          │
+│    └──┬─ EDIT INDIVIDUAL (1279-1452)                         │
+│       ├─ EditPar()                                           │
+│       ├─ Left/RightCursor()                                  │
+│       ├─ LCDCursor()                                         │
+│       ├─ AdjustParTime()                                     │
+│       └─ Increase/DecreaseTime()                             │
+│                                                               │
+├─── SOUND OUTPUT (Lines 1454-1472) ───────────────────────────┤
+│    ├─ BEEP() - Main beep                                     │
+│    └─ ButtonTone() - Button feedback                         │
+│                                                               │
+├─── SETUP FUNCTIONS (Lines 1474-1577) ────────────────────────┤
+│    ├─ EEPROMSetup() - Persistent storage                     │
+│    ├─ MenuSetup() - Menu structure                           │
+│    └─ LCDSetup() - Display init                              │
+│                                                               │
+├─── INPUT HANDLING (Lines 1579-1933) ─────────────────────────┤
+│    ├─ 26 Handle*() helper functions                          │
+│    ├─ ButtonListener() - Main input handler                  │
+│    └─ ShotListener() - Audio trigger                         │
+│                                                               │
+└─── SETUP AND LOOP (Lines 1935-1953) ─────────────────────────┘
+     ├─ setup() - Arduino init
+     └─ loop() - Main program loop
+
+═══════════════════════════════════════════════════════════════════
+
+Legend:
+  ─── Major Section
+  ├─┬ Subsection with children
+  ├─  Single function or group
+  └─  Last item in section
+
+Function Count by Section:
+  ● State Management: ~25 functions
+  ● Audio Input: 1 function
+  ● Timer: 5 functions
+  ● Review: 5 functions
+  ● Settings: ~20 functions (5 subsections)
+  ● Par Times: ~13 functions (3 subsections)
+  ● Sound Output: 2 functions
+  ● Setup: 3 functions
+  ● Input Handling: ~28 functions
+  ● Setup/Loop: 2 functions
+
+Total: ~104 functions organized into 11 major sections
+
+Benefits:
+  ✓ Fast navigation to any feature area
+  ✓ Related functions grouped together
+  ✓ Clear hierarchy and structure
+  ✓ Easy to maintain and extend
+  ✓ Better code comprehension
+```
+
