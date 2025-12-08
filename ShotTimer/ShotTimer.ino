@@ -420,7 +420,7 @@ boolean IsInParState() {
 }
 
 //////////////////////////////
-// Instantiation //@TODO: should maybe have a settings object and timer object? 
+// Instantiation
 //////////////////////////////
 LightChrono g_shot_chrono;
 
@@ -675,13 +675,9 @@ void on_menu_start_selected(MenuItem* p_menu_item) {
 // Run the shot timer - runs in loop()
 //////////////////////////////
 
-// @TODO: Decide if passing in current state as an argument or just accessing 
-// as a global variable!
 void RunTimer(ProgramState* p_state, boolean* par_state) {
-  //DEBUG_PRINTLN(*runState, 0);
   if (*p_state == TIMER)
   { 
-    //DEBUG_PRINTLN(F("Enter Run Timer Mode."), 0);
     ShotListener();
     ParBeeps(par_state);
   }
@@ -693,7 +689,6 @@ void RunTimer(ProgramState* p_state, boolean* par_state) {
 
 void ParBeeps(boolean* par_state)
 {
-    //DEBUG_PRINTLN(*par_state, 0);
     if (*par_state == true) {
       DEBUG_PRINTLN(F("...check for par beep..."),0)
       g_additive_par = 0;
@@ -702,8 +697,6 @@ void ParBeeps(boolean* par_state)
           break;
         }
         g_additive_par += g_par_times[i]; // add the g_par_times together
-        //if (shotTimer.elapsed() <= (g_additive_par + (g_sample_window / 2)) 
-        //&& shotTimer.elapsed() >= (g_additive_par - g_sample_window / 2)){
         int time_elapsed = g_shot_chrono.elapsed();
         // Beep if the current time matches the parTime
         // (within the boundaries of sample window) 
@@ -775,14 +768,6 @@ void RecordShot() {
 
 void on_menu_review_selected(MenuItem* p_menu_item) {
   if(!IsInState(REVIEW)){
-    //DEBUG FOR LOOP - PRINT ALL SHOT TIMES IN THE STRING TO SERIAL
-    // for (int t = 0; t < g_current_shot; t++) {
-    //   DEBUG_PRINT_P(kShotNum);
-    //   DEBUG_PRINT(t + 1);
-    //   DEBUG_PRINT(F(" - "));
-    //   DEBUG_PRINTLN(g_shot_times[t],0) // for DEBUG
-    // }
-    //END DEBUG 
     g_lcd.setBacklight(VIOLET);
     g_review_shot = g_current_shot;
     DEBUG_PRINT(F("Reviewing Shot: ")); DEBUG_PRINTLN(g_review_shot + 1,0);
@@ -1209,7 +1194,7 @@ void DisplayParInfo() {
 }
 
 //////////////////////////////
-// ParDown()
+// ParDown - Navigate down in par times list
 //////////////////////////////
 
 void ParDown() {
@@ -1224,7 +1209,7 @@ void ParDown() {
 }
 
 //////////////////////////////
-// ParUp()
+// ParUp - Navigate up in par times list
 //////////////////////////////
 
 void ParUp() {
@@ -1240,7 +1225,7 @@ void ParUp() {
 }
 
 //////////////////////////////
-// EditPar()
+// EditPar - Enter par time editing mode
 //////////////////////////////
 
 void EditPar() {
@@ -1256,7 +1241,7 @@ void EditPar() {
 }
 
 //////////////////////////////
-// LeftCursor()
+// LeftCursor - Move cursor left for time editing
 //////////////////////////////
 
 void LeftCursor() {
@@ -1271,7 +1256,7 @@ void LeftCursor() {
 }
 
 //////////////////////////////
-// RightCursor()
+// RightCursor - Move cursor right for time editing
 //////////////////////////////
 
 void RightCursor() {
@@ -1286,9 +1271,9 @@ void RightCursor() {
 }
 
 //////////////////////////////
-// LCDCursor()
+// LCDCursor - Display cursor at current position on screen
 //////////////////////////////
-//switch case for cursor position displayed on screen
+
 void LCDCursor() {
   DEBUG_PRINT(F("Displaying Cursor at: "));DEBUG_PRINTLN(g_par_cursor, 0);
   switch (g_par_cursor) {
@@ -1393,7 +1378,7 @@ void AdjustParTime(int8_t direction) {
 }
 
 //////////////////////////////
-// IncreaseTime()
+// IncreaseTime - Increment par time at cursor position
 //////////////////////////////
 
 void IncreaseTime() {
@@ -1402,7 +1387,7 @@ void IncreaseTime() {
 }
 
 //////////////////////////////
-// DecreaseTime()
+// DecreaseTime - Decrement par time at cursor position
 //////////////////////////////
 
 void DecreaseTime() {
@@ -1882,11 +1867,9 @@ void ButtonListener(Adafruit_RGBLCDShield* g_lcd,
 //////////////////////////////
 
 void ShotListener() {
-  //DEBUG_PRINTLN(F("Listen-start:"),0);
   if (SampleSound() >= g_threshold) {
     RecordShot();
   }
-  //DEBUG_PRINTLN(F("Listen-end:"),0);
 }
 
 ////////////////////////////////////////////////////////////
