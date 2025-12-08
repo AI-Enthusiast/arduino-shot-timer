@@ -90,4 +90,94 @@
     lcd->print(lcd_output);
   }
   
+  //////////////////////////////
+  // Clear LCD and display a two-line header
+  //////////////////////////////
+
+  void lcd_display_header(Adafruit_RGBLCDShield* lcd, const __FlashStringHelper* line1, const __FlashStringHelper* line2)
+  {
+    lcd->clear();
+    lcd->setCursor(0, 0);
+    lcd->print(line1);
+    lcd->setCursor(0, 1);
+    lcd->print(line2);
+  }
+
+  //////////////////////////////
+  // Clear LCD and display a two-line header (with PROGMEM for line 2)
+  //////////////////////////////
+
+  void lcd_display_header_p(Adafruit_RGBLCDShield* lcd, const __FlashStringHelper* line1, const char* line2_p)
+  {
+    lcd->clear();
+    lcd->setCursor(0, 0);
+    lcd->print(line1);
+    lcd->setCursor(0, 1);
+    lcd_print_p(lcd, line2_p);
+  }
+
+  //////////////////////////////
+  // Display a value at a specific cursor position
+  //////////////////////////////
+
+  void lcd_display_at(Adafruit_RGBLCDShield* lcd, uint8_t col, uint8_t row, uint32_t value, uint8_t digits)
+  {
+    lcd->setCursor(col, row);
+    lcd_print(lcd, value, digits);
+  }
+
+  //////////////////////////////
+  // Display a time value at a specific cursor position
+  //////////////////////////////
+
+  void lcd_display_time_at(Adafruit_RGBLCDShield* lcd, uint8_t col, uint8_t row, uint32_t time, uint8_t digits)
+  {
+    lcd->setCursor(col, row);
+    lcd_print_time(lcd, time, digits);
+  }
+
+  //////////////////////////////
+  // Display a PROGMEM string at a specific cursor position
+  //////////////////////////////
+
+  void lcd_display_p_at(Adafruit_RGBLCDShield* lcd, uint8_t col, uint8_t row, const char* str_p)
+  {
+    lcd->setCursor(col, row);
+    lcd_print_p(lcd, str_p);
+  }
+
+  //////////////////////////////
+  // Display a Flash string at a specific cursor position
+  //////////////////////////////
+
+  void lcd_display_f_at(Adafruit_RGBLCDShield* lcd, uint8_t col, uint8_t row, const __FlashStringHelper* str)
+  {
+    lcd->setCursor(col, row);
+    lcd->print(str);
+  }
+
+  //////////////////////////////
+  // Display an integer at a specific cursor position
+  //////////////////////////////
+
+  void lcd_display_int_at(Adafruit_RGBLCDShield* lcd, uint8_t col, uint8_t row, int value)
+  {
+    lcd->setCursor(col, row);
+    lcd->print(value);
+  }
+
+  //////////////////////////////
+  // Update line 2 with enabled/disabled status
+  //////////////////////////////
+
+  void lcd_display_enabled_status(Adafruit_RGBLCDShield* lcd, bool enabled, const char* enabled_p, const char* disabled_p)
+  {
+    lcd->setCursor(0, 1);
+    if (enabled) {
+      lcd_print_p(lcd, enabled_p);
+    } else {
+      lcd_print_p(lcd, disabled_p);
+    }
+  }
+
 #endif // LCDHELPERS_H_

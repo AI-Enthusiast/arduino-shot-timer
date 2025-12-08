@@ -1,6 +1,8 @@
 ////////////////////////////////////////////////////////////
 // Shot Timer
-// Author: hestenet
+// current author: Cormac Dacker
+// current repository: https://github.com/AI-Enthusiast/arduino-shot-timer
+// previous author: hestenet
 // Canonical Repository: https://github.com/hestenet/arduino-shot-timer
 ////////////////////////////////////////////////////////////
 //  This file is part of ShotTimer. 
@@ -476,15 +478,8 @@ void EnterReviewState() {
 
 void EnterParStateState() {
   DEBUG_PRINTLN(F("Enter SETPARSTATE state"), 0);
-  g_lcd.clear();
-  g_lcd.setCursor(0, 0);
-  g_lcd.print(F("Par Times"));
-  g_lcd.setCursor(0, 1);
-  if (g_par_enabled == false) {
-    lcd_print_p(&g_lcd, kDisabled);
-  } else {
-    lcd_print_p(&g_lcd, kEnabled);
-  }
+  lcd_display_header(&g_lcd, F("Par Times"), F(""));
+  lcd_display_enabled_status(&g_lcd, g_par_enabled, kEnabled, kDisabled);
 }
 
 void EnterParTimesState() {
@@ -495,20 +490,12 @@ void EnterParTimesState() {
 void EnterIndParState() {
   DEBUG_PRINTLN(F("Enter SETINDPAR state"), 0);
   g_lcd.setBacklight(GREEN);
-  g_lcd.setCursor(0, 0);
-  g_lcd.print(F("Edit"));
-  lcd_print_p(&g_lcd, kClearLine);
-  g_lcd.setCursor(0, 1);
-  g_lcd.print(F("P"));
-  lcd_print(&g_lcd, g_current_par + 1, LCD_DISPLAY_WIDTH_2);
-  g_lcd.setCursor(4, 1);
-  if (g_current_par > 0) {
-    lcd_print_p(&g_lcd, kPlus);
-  } else {
-    lcd_print_p(&g_lcd, kSpace);
-  }
-  g_lcd.setCursor(5, 1);
-  lcd_print_time(&g_lcd, g_par_times[g_current_par], LCD_TIME_WIDTH);
+  lcd_display_f_at(&g_lcd, 0, 0, F("Edit"));
+  lcd_display_p_at(&g_lcd, 5, 0, kClearLine);
+  lcd_display_f_at(&g_lcd, 0, 1, F("P"));
+  lcd_display_at(&g_lcd, 1, 1, g_current_par + 1, LCD_DISPLAY_WIDTH_2);
+  lcd_display_p_at(&g_lcd, 4, 1, (g_current_par > 0) ? kPlus : kSpace);
+  lcd_display_time_at(&g_lcd, 5, 1, g_par_times[g_current_par], LCD_TIME_WIDTH);
   g_par_cursor = PAR_CURSOR_DEFAULT;
   LCDCursor();
 }
@@ -516,8 +503,7 @@ void EnterIndParState() {
 void EnterDelayState() {
   DEBUG_PRINTLN(F("Enter SETDELAY state"), 0);
   g_lcd.clear();
-  g_lcd.setCursor(0, 0);
-  g_lcd.print(F("Start Delay"));
+  lcd_display_f_at(&g_lcd, 0, 0, F("Start Delay"));
   g_lcd.setCursor(0, 1);
   if (g_delay_time > DELAY_SETTING_RANDOM_1TO4) {
     lcd_print_p(&g_lcd, kRan2to6);
@@ -530,42 +516,26 @@ void EnterDelayState() {
 
 void EnterRofDrawState() {
   DEBUG_PRINTLN(F("Enter SETROFDRAW state"), 0);
-  g_lcd.clear();
-  g_lcd.setCursor(0, 0);
-  g_lcd.print(F("Incl Draw Shot"));
-  g_lcd.setCursor(0, 1);
-  if (g_include_draw == false) {
-    lcd_print_p(&g_lcd, kDisabled);
-  } else {
-    lcd_print_p(&g_lcd, kEnabled);
-  }
+  lcd_display_header(&g_lcd, F("Incl Draw Shot"), F(""));
+  lcd_display_enabled_status(&g_lcd, g_include_draw, kEnabled, kDisabled);
 }
 
 void EnterBeepState() {
   DEBUG_PRINTLN(F("Enter SETBEEP state"), 0);
-  g_lcd.clear();
-  g_lcd.setCursor(0, 0);
-  g_lcd.print(F("Beep Volume"));
-  g_lcd.setCursor(0, 1);
-  g_lcd.print(g_beep_vol);
+  lcd_display_header(&g_lcd, F("Beep Volume"), F(""));
+  lcd_display_int_at(&g_lcd, 0, 1, g_beep_vol);
 }
 
 void EnterSensState() {
   DEBUG_PRINTLN(F("Enter SETSENS state"), 0);
-  g_lcd.clear();
-  g_lcd.setCursor(0, 0);
-  g_lcd.print(F("Sensitivity"));
-  g_lcd.setCursor(0, 1);
-  g_lcd.print(g_sensitivity);
+  lcd_display_header(&g_lcd, F("Sensitivity"), F(""));
+  lcd_display_int_at(&g_lcd, 0, 1, g_sensitivity);
 }
 
 void EnterEchoState() {
   DEBUG_PRINTLN(F("Enter SETECHO state"), 0);
-  g_lcd.clear();
-  g_lcd.setCursor(0, 0);
-  g_lcd.print(F("Echo Protect"));
-  g_lcd.setCursor(0, 1);
-  g_lcd.print(g_sample_window);
+  lcd_display_header(&g_lcd, F("Echo Protect"), F(""));
+  lcd_display_int_at(&g_lcd, 0, 1, g_sample_window);
 }
 
 //////////////////////////////
@@ -631,12 +601,10 @@ void RenderMenu() {
   Menu const* kMenu = tm.get_current_menu();
   g_lcd.setBacklight(WHITE);
   g_lcd.clear();
-  g_lcd.setCursor(0, 0);
-  lcd_print_p(&g_lcd, kMenu->get_name());
+  lcd_display_p_at(&g_lcd, 0, 0, kMenu->get_name());
   DEBUG_PRINT(F("Rendering Menu: "));
   DEBUG_PRINTLN_P(kMenu->get_name(),0);
-  g_lcd.setCursor(0, 1);
-  lcd_print_p(&g_lcd, kMenu->get_selected()->get_name());
+  lcd_display_p_at(&g_lcd, 0, 1, kMenu->get_selected()->get_name());
   DEBUG_PRINT(F("Rendering Item: "));
   DEBUG_PRINTLN_P(kMenu->get_selected()->get_name(),0);
 }
@@ -696,10 +664,8 @@ void on_menu_start_selected(MenuItem* p_menu_item) {
   lcd_print_p(&g_lcd, kClearLine); // create a clearline function? 
                                     // Save fewer strings in progmem?
   StartDelay();
-  g_lcd.setCursor(0, 0);
-  g_lcd.print(F(" GO!!  Shot#    ")); //g_lcd.setCursor(0, 13);
-  g_lcd.setCursor(0, 1);
-  g_lcd.print(F("Last:")); //10 chars
+  lcd_display_f_at(&g_lcd, 0, 0, F(" GO!!  Shot#    "));
+  lcd_display_f_at(&g_lcd, 0, 1, F("Last:"));
   BEEP();
   g_shot_chrono.restart();
   TransitionToState(TIMER);
@@ -790,10 +756,8 @@ void RecordShot() {
   DEBUG_PRINT_P(kShotNum); DEBUG_PRINT(g_current_shot + 1); 
   DEBUG_PRINT(F(" - "));
   DEBUG_PRINT(F("\n"));
-  g_lcd.setCursor(13, 0);
-  lcd_print(&g_lcd, g_current_shot + 1, LCD_DISPLAY_WIDTH_3);
-  g_lcd.setCursor(7, 1);
-  lcd_print_time(&g_lcd, g_shot_times[g_current_shot], LCD_TIME_WIDTH);
+  lcd_display_at(&g_lcd, 13, 0, g_current_shot + 1, LCD_DISPLAY_WIDTH_3);
+  lcd_display_time_at(&g_lcd, 7, 1, g_shot_times[g_current_shot], LCD_TIME_WIDTH);
   g_current_shot++;
   if (g_current_shot == kShotLimit) { 
     DEBUG_PRINTLN(F("Out of room for shots"),0);
@@ -820,14 +784,12 @@ void on_menu_review_selected(MenuItem* p_menu_item) {
     // }
     //END DEBUG 
     g_lcd.setBacklight(VIOLET);
-    g_lcd.setCursor(0, 0);
-    g_review_shot = g_current_shot; 
+    g_review_shot = g_current_shot;
     DEBUG_PRINT(F("Reviewing Shot: ")); DEBUG_PRINTLN(g_review_shot + 1,0);
-    lcd_print_p(&g_lcd, kShotNum);
+    lcd_display_p_at(&g_lcd, 0, 0, kShotNum);
     g_lcd.print(g_review_shot + 1);
     lcd_print_p(&g_lcd, kClearLine);
-    g_lcd.setCursor(11, 0);
-    lcd_print_p(&g_lcd, kSplit);
+    lcd_display_p_at(&g_lcd, 11, 0, kSplit);
     g_lcd.setCursor(0, 1);
     lcd_print_time(&g_lcd, g_shot_times[g_review_shot], LCD_TIME_WIDTH);
     lcd_print_p(&g_lcd, kSpace);
@@ -849,12 +811,10 @@ void on_menu_review_selected(MenuItem* p_menu_item) {
 //////////////////////////////
 
 void DisplayShotReview() {
-  g_lcd.setCursor(0, 0);
-  lcd_print_p(&g_lcd, kShotNum);
+  lcd_display_p_at(&g_lcd, 0, 0, kShotNum);
   g_lcd.print(g_review_shot + 1);
   lcd_print_p(&g_lcd, kClearLine);
-  g_lcd.setCursor(11, 0);
-  lcd_print_p(&g_lcd, kSplit);
+  lcd_display_p_at(&g_lcd, 11, 0, kSplit);
   g_lcd.setCursor(0, 1);
   lcd_print_time(&g_lcd, g_shot_times[g_review_shot], LCD_TIME_WIDTH);
   lcd_print_p(&g_lcd, kSpace);
@@ -1032,13 +992,7 @@ void ToggleIncludeDraw() {
   g_include_draw = !g_include_draw;
   DEBUG_PRINT(F("g_current_state: ")); DEBUG_PRINTLN(g_current_state,0);
   DEBUG_PRINT(F("Toggled Include Draw: "));DEBUG_PRINTLN(g_par_enabled, 0);
-  g_lcd.setCursor(0, 1);
-  if (g_include_draw == false) {
-    lcd_print_p(&g_lcd, kDisabled); //10 characters
-  }
-  else {
-    lcd_print_p(&g_lcd, kEnabled); //10 characters
-  }
+  lcd_display_enabled_status(&g_lcd, g_include_draw, kEnabled, kDisabled);
 }
 
 //////////////////////////////
@@ -1218,13 +1172,7 @@ void ToggleParState() {
   g_par_enabled = !g_par_enabled;
   DEBUG_PRINT(F("g_current_state: ")); DEBUG_PRINTLN(g_current_state,0);
   DEBUG_PRINT(F("Toggled Par to: "));DEBUG_PRINTLN(g_par_enabled, 0);
-  g_lcd.setCursor(0, 1);
-  if (g_par_enabled == false) {
-    lcd_print_p(&g_lcd, kDisabled); //10 characters
-  }
-  else {
-    lcd_print_p(&g_lcd, kEnabled); //10 characters
-  }
+  lcd_display_enabled_status(&g_lcd, g_par_enabled, kEnabled, kDisabled);
 }
 
 //////////////////////////////
@@ -1236,20 +1184,11 @@ void on_menu_par_times_selected(MenuItem* p_menu_item) {
     DEBUG_PRINT(F("State before select: ")); DEBUG_PRINTLN(g_current_state,0);
   if(!IsInState(SETPARTIMES)){
     g_lcd.clear();
-    g_lcd.setCursor(0, 0);
-    g_lcd.print(F("<<"));
-    g_lcd.setCursor(5, 0);
-    g_lcd.print(F("Par"));
-    g_lcd.setCursor(9, 0);
-    lcd_print(&g_lcd, (g_current_par + 1), LCD_DISPLAY_WIDTH_2);
-    g_lcd.setCursor(4, 1);
-    if (g_current_par > 0) {
-      lcd_print_p(&g_lcd, kPlus);
-    }
-    else {
-      lcd_print_p(&g_lcd, kSpace);
-    }
-    lcd_print_time(&g_lcd, g_par_times[g_current_par], LCD_TIME_WIDTH);
+    lcd_display_f_at(&g_lcd, 0, 0, F("<<"));
+    lcd_display_f_at(&g_lcd, 5, 0, F("Par"));
+    lcd_display_at(&g_lcd, 9, 0, g_current_par + 1, LCD_DISPLAY_WIDTH_2);
+    lcd_display_p_at(&g_lcd, 4, 1, (g_current_par > 0) ? kPlus : kSpace);
+    lcd_display_time_at(&g_lcd, 5, 1, g_par_times[g_current_par], LCD_TIME_WIDTH);
     DEBUG_PRINTLN_P(tm.get_current_menu()->get_selected()->get_name(),0);
     TransitionToState(SETPARTIMES);
   }
@@ -1263,16 +1202,9 @@ void on_menu_par_times_selected(MenuItem* p_menu_item) {
 //////////////////////////////
 
 void DisplayParInfo() {
-  g_lcd.setCursor(9, 0);
-  lcd_print(&g_lcd, (g_current_par + 1), 2);
-  g_lcd.setCursor(4, 1);
-  if (g_current_par > 0) {
-    lcd_print_p(&g_lcd, kPlus);
-  }
-  else {
-    lcd_print_p(&g_lcd, kSpace);
-  }
-  lcd_print_time(&g_lcd, g_par_times[g_current_par], LCD_TIME_WIDTH);
+  lcd_display_at(&g_lcd, 9, 0, g_current_par + 1, 2);
+  lcd_display_p_at(&g_lcd, 4, 1, (g_current_par > 0) ? kPlus : kSpace);
+  lcd_display_time_at(&g_lcd, 5, 1, g_par_times[g_current_par], LCD_TIME_WIDTH);
   DEBUG_PRINTLN_P(tm.get_current_menu()->get_selected()->get_name(),0);
 }
 
