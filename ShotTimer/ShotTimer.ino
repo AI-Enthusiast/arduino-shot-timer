@@ -490,21 +490,12 @@ void on_menu_review_selected(MenuItem* p_menu_item) {
 }
 
 //////////////////////////////
-// review shots - move to the next shot in the string
+// Helper function to display shot review information
 //////////////////////////////
 
-// if g_review shot == g_current_shot set g_review_shot = 0 
-// else increment g_review_shot
-// print according to same rules as initial menu
-
-void NextShot() {
-  DEBUG_PRINTLN(F("NextShot()"), 0);
-  DEBUG_PRINTLN(g_current_state, 0);
+void DisplayShotReview() {
   g_lcd.setCursor(0, 0);
   lcd_print_p(&g_lcd, kShotNum);
-  if (g_review_shot == g_current_shot) {
-    g_review_shot = 0;
-  } else g_review_shot++;
   g_lcd.print(g_review_shot + 1);
   lcd_print_p(&g_lcd, kClearLine);
   g_lcd.setCursor(11, 0);
@@ -522,6 +513,23 @@ void NextShot() {
 }
 
 //////////////////////////////
+// review shots - move to the next shot in the string
+//////////////////////////////
+
+// if g_review shot == g_current_shot set g_review_shot = 0
+// else increment g_review_shot
+// print according to same rules as initial menu
+
+void NextShot() {
+  DEBUG_PRINTLN(F("NextShot()"), 0);
+  DEBUG_PRINTLN(g_current_state, 0);
+  if (g_review_shot == g_current_shot) {
+    g_review_shot = 0;
+  } else g_review_shot++;
+  DisplayShotReview();
+}
+
+//////////////////////////////
 // review shots - move to the previous shot in the string
 //////////////////////////////
 
@@ -533,25 +541,10 @@ void PreviousShot() {
   DEBUG_PRINTLN(F("PreviousShot()"), 0);
   DEBUG_PRINTLN(g_current_state, 0);
   DEBUG_PRINTLN(g_current_state, 0);
-  g_lcd.setCursor(0, 0);
-  lcd_print_p(&g_lcd, kShotNum);
   if (g_review_shot == 0) {
     g_review_shot = g_current_shot;
   } else g_review_shot--;
-  g_lcd.print(g_review_shot + 1);
-  lcd_print_p(&g_lcd, kClearLine);
-  g_lcd.setCursor(11, 0);
-  lcd_print_p(&g_lcd, kSplit);
-  g_lcd.setCursor(0, 1);
-  lcd_print_time(&g_lcd, g_shot_times[g_review_shot], 9);
-  lcd_print_p(&g_lcd, kSpace);
-  if (g_review_shot == 0) {
-    lcd_print_p(&g_lcd, kFirst);
-  }
-  else {
-    lcd_print_time(&g_lcd, g_shot_times[g_review_shot] - 
-                   g_shot_times[g_review_shot - 1], 6);
-  }
+  DisplayShotReview();
 }
 
 //////////////////////////////
@@ -618,28 +611,38 @@ void on_menu_start_delay_selected(MenuItem* p_menu_item) {
 }
 
 //////////////////////////////
+// Helper function to cycle a value within min/max range and display it
+//////////////////////////////
+
+void CycleValueAndDisplay(int8_t &value, int8_t min_val, int8_t max_val, int8_t step, const char* label_p = nullptr) {
+  value += step;
+  if (value > max_val) {
+    value = min_val;
+  }
+  else if (value < min_val) {
+    value = max_val;
+  }
+
+  g_lcd.setCursor(0, 1);
+  if (value > 11) {
+    lcd_print_p(&g_lcd, kRan2to6);
+  }
+  else if (value == 11) {
+    lcd_print_p(&g_lcd, kRan1to4);
+  }
+  else {
+    g_lcd.print(value);
+  }
+  lcd_print_p(&g_lcd, kClearLine);
+}
+
+//////////////////////////////
 // IncreaseDelay
 //////////////////////////////
 
 void IncreaseDelay() {
   DEBUG_PRINTLN(F("IncreaseDelay()"), 0);
-  if (g_delay_time == 12) {
-    g_delay_time = 0;
-  }
-  else {
-    g_delay_time++;
-  }
-  g_lcd.setCursor(0, 1);
-  if (g_delay_time > 11) {
-    lcd_print_p(&g_lcd, kRan2to6);
-  }
-  else if (g_delay_time == 11) {
-    lcd_print_p(&g_lcd, kRan1to4);
-  }
-  else {
-    g_lcd.print(g_delay_time);
-  }
-  lcd_print_p(&g_lcd, kClearLine);
+  CycleValueAndDisplay(g_delay_time, 0, 12, 1);
 }
 
 //////////////////////////////
@@ -648,23 +651,7 @@ void IncreaseDelay() {
 
 void DecreaseDelay() {
   DEBUG_PRINTLN(F("DecreaseDelay()"), 0);
-  if (g_delay_time == 0) {
-    g_delay_time = 12;
-  }
-  else {
-    g_delay_time--;
-  }
-  g_lcd.setCursor(0, 1);
-  if (g_delay_time > 11) {
-    lcd_print_p(&g_lcd, kRan2to6);
-  }
-  else if (g_delay_time == 11) {
-    lcd_print_p(&g_lcd, kRan1to4);
-  }
-  else {
-    g_lcd.print(g_delay_time);
-  }
-  lcd_print_p(&g_lcd, kClearLine);
+  CycleValueAndDisplay(g_delay_time, 0, 12, -1);
 }
 
 //////////////////////////////
@@ -755,21 +742,33 @@ void on_menu_buzzer_selected(MenuItem* p_menu_item) {
 }
 
 //////////////////////////////
+// Helper function to cycle a simple integer value and display it
+//////////////////////////////
+
+void CycleIntValueAndDisplay(uint8_t &value, uint8_t min_val, uint8_t max_val, int8_t step, uint8_t display_width = 2, const char* suffix_p = nullptr) {
+  value += step;
+  if (value > max_val) {
+    value = min_val;
+  }
+  else if (value < min_val) {
+    value = max_val;
+  }
+
+  g_lcd.setCursor(0, 1);
+  lcd_print(&g_lcd, value, display_width);
+  if (suffix_p != nullptr) {
+    lcd_print_p(&g_lcd, suffix_p);
+  }
+  lcd_print_p(&g_lcd, kClearLine);
+}
+
+//////////////////////////////
 // IncreaseBeepVol
 //////////////////////////////
 
 void IncreaseBeepVol() {
   DEBUG_PRINTLN(F("IncreaseBeepVoly()"), 0);
-  if (g_beep_vol == 10) {
-    g_beep_vol = 0;
-  }
-  else {
-    g_beep_vol++;
-  }
-  g_lcd.setCursor(0, 1);
-  lcd_print(&g_lcd, g_beep_vol, 2);
-  //@TODO REplace with a single PROGMEM clear buffer
-  lcd_print_p(&g_lcd, kClearLine);
+  CycleIntValueAndDisplay(g_beep_vol, 0, 10, 1);
 }
 
 //////////////////////////////
@@ -778,15 +777,7 @@ void IncreaseBeepVol() {
 
 void DecreaseBeepVol() {
   DEBUG_PRINTLN(F("DecreaseBeepVoly()"), 0);
-  if (g_beep_vol == 0) {
-    g_beep_vol = 10;
-  }
-  else {
-    g_beep_vol--;
-  }
-  g_lcd.setCursor(0, 1);
-  lcd_print(&g_lcd, g_beep_vol, 2);
-  lcd_print_p(&g_lcd, kClearLine);
+  CycleIntValueAndDisplay(g_beep_vol, 0, 10, -1);
 }
 
 //////////////////////////////
@@ -817,16 +808,8 @@ void on_menu_sensitivity_selected(MenuItem* p_menu_item) {
 
 void IncreaseSensitivity() {
   DEBUG_PRINTLN(F("IncreaseSensitivity()"), 0);
-  if (g_sensitivity == 20) {
-    g_sensitivity = 0;
-  }
-  else {
-    g_sensitivity++;
-  }
+  CycleIntValueAndDisplay(g_sensitivity, 0, 20, 1);
   SensToThreshold();
-  g_lcd.setCursor(0, 1);
-  lcd_print(&g_lcd, g_sensitivity, 2);
-  lcd_print_p(&g_lcd, kClearLine);
 }
 
 //////////////////////////////
@@ -835,16 +818,8 @@ void IncreaseSensitivity() {
 
 void DecreaseSensitivity() {
   DEBUG_PRINTLN(F("DecreaseSensitivity()"), 0);
-  if (g_sensitivity == 0) {
-    g_sensitivity = 20;
-  }
-  else {
-    g_sensitivity--;
-  }
+  CycleIntValueAndDisplay(g_sensitivity, 0, 20, -1);
   SensToThreshold();
-  g_lcd.setCursor(0, 1);
-  lcd_print(&g_lcd, g_sensitivity, 2);
-  lcd_print_p(&g_lcd, kClearLine);
 }
 
 //////////////////////////////
@@ -871,21 +846,40 @@ void on_menu_echo_selected(MenuItem* p_menu_item) {
 }
 
 //////////////////////////////
+// Helper function to cycle sample_window and display with "ms" suffix
+//////////////////////////////
+
+void CycleSampleWindowAndDisplay(int8_t step) {
+  if (step > 0) {
+    if (g_sample_window == 100) {
+      g_sample_window = 10;
+    }
+    else {
+      g_sample_window += 10;
+    }
+  }
+  else {
+    if (g_sample_window == 10) {
+      g_sample_window = 100;
+    }
+    else {
+      g_sample_window -= 10;
+    }
+  }
+
+  g_lcd.setCursor(0, 1);
+  g_lcd.print(g_sample_window);
+  lcd_print_p(&g_lcd, kMS);
+  lcd_print_p(&g_lcd, kClearLine);
+}
+
+//////////////////////////////
 // IncreaseEchoProtect
 //////////////////////////////
 
 void IncreaseEchoProtect() {
   DEBUG_PRINTLN(F("IncreaseEchoProtect()"), 0);
-  if (g_sample_window == 100) {
-    g_sample_window = 10;
-  }
-  else {
-    g_sample_window += 10;
-  }
-  g_lcd.setCursor(0, 1);
-  g_lcd.print(g_sample_window);
-  lcd_print_p(&g_lcd, kMS); 
-  lcd_print_p(&g_lcd, kClearLine);
+  CycleSampleWindowAndDisplay(1);
 }
 
 //////////////////////////////
@@ -894,16 +888,7 @@ void IncreaseEchoProtect() {
 
 void DecreaseEchoProtect() {
   DEBUG_PRINTLN(F("DecreaseEchoProtect()"), 0);
-  if (g_sample_window == 10) {
-    g_sample_window = 100;
-  }
-  else {
-    g_sample_window -= 10;
-  }
-  g_lcd.setCursor(0, 1);
-  g_lcd.print(g_sample_window);
-  lcd_print_p(&g_lcd, kMS);
-  lcd_print_p(&g_lcd, kClearLine);
+  CycleSampleWindowAndDisplay(-1);
 }
 
 //////////////////////////////
@@ -997,17 +982,10 @@ void on_menu_par_times_selected(MenuItem* p_menu_item) {
 }
 
 //////////////////////////////
-// ParDown()
+// Helper function to display current par information
 //////////////////////////////
 
-void ParDown() {
-  DEBUG_PRINTLN(F("ParDown()"), 0);
-  if (g_current_par == 0) {
-    g_current_par = kParLimit - 1;
-  }
-  else {
-    g_current_par--;
-  }
+void DisplayParInfo() {
   g_lcd.setCursor(9, 0);
   lcd_print(&g_lcd, (g_current_par + 1), 2);
   g_lcd.setCursor(4, 1);
@@ -1019,6 +997,21 @@ void ParDown() {
   }
   lcd_print_time(&g_lcd, g_par_times[g_current_par], 9);
   DEBUG_PRINTLN_P(tm.get_current_menu()->get_selected()->get_name(),0);
+}
+
+//////////////////////////////
+// ParDown()
+//////////////////////////////
+
+void ParDown() {
+  DEBUG_PRINTLN(F("ParDown()"), 0);
+  if (g_current_par == 0) {
+    g_current_par = kParLimit - 1;
+  }
+  else {
+    g_current_par--;
+  }
+  DisplayParInfo();
 }
 
 //////////////////////////////
@@ -1034,17 +1027,7 @@ void ParUp() {
   else {
     g_current_par++;
   }
-  g_lcd.setCursor(9, 0);
-  lcd_print(&g_lcd, (g_current_par + 1), 2);
-  g_lcd.setCursor(4, 1);
-  if (g_current_par > 0) {
-    lcd_print_p(&g_lcd, kPlus);
-  }
-  else {
-    lcd_print_p(&g_lcd, kSpace);
-  }
-  lcd_print_time(&g_lcd, g_par_times[g_current_par], 9);
-  DEBUG_PRINTLN_P(tm.get_current_menu()->get_selected()->get_name(),0);
+  DisplayParInfo();
 }
 
 //////////////////////////////
@@ -1103,7 +1086,7 @@ void LeftCursor() {
 //////////////////////////////
 
 void RightCursor() {
-  DEBUG_PRINTLN(F("LeftCursor()"), 0);
+  DEBUG_PRINTLN(F("RightCursor()"), 0);
   if (g_par_cursor == 1) {
     g_par_cursor = 7;
   }
@@ -1156,71 +1139,77 @@ void LCDCursor() {
 }
 
 //////////////////////////////
+// Helper function to adjust par time based on cursor position and direction
+//////////////////////////////
+
+void AdjustParTime(int8_t direction) {
+  // direction: 1 for increase, -1 for decrease
+  unsigned long increment = 1;
+  unsigned long max_val = 5999999;
+  unsigned long min_val = 0;
+
+  switch (g_par_cursor) {
+    case 1: // milliseconds
+      increment = 1;
+      max_val = 5999999;
+      min_val = 1;
+      break;
+    case 2: // hundreds milliseconds
+      increment = 10;
+      max_val = 5999990;
+      min_val = 10;
+      break;
+    case 3: // tens milliseconds
+      increment = 100;
+      max_val = 5999900;
+      min_val = 100;
+      break;
+    case 4: // seconds
+      increment = 1000;
+      max_val = 5999000;
+      min_val = 1000;
+      break;
+    case 5: // ten seconds
+      increment = 10000;
+      max_val = 5990000;
+      min_val = 10000;
+      break;
+    case 6: // minutes
+      increment = 60000;
+      max_val = 5940000;
+      min_val = 60000;
+      break;
+    case 7: // 10 minutes
+      increment = 600000;
+      max_val = 5400000;
+      min_val = 600000;
+      break;
+  }
+
+  if (direction > 0) {
+    // Increase
+    if (g_par_times[g_current_par] < max_val) {
+      g_par_times[g_current_par] += increment;
+    }
+  }
+  else {
+    // Decrease
+    if (g_par_times[g_current_par] >= min_val) {
+      g_par_times[g_current_par] -= increment;
+    }
+  }
+
+  g_lcd.setCursor(5, 1);
+  lcd_print_time(&g_lcd, g_par_times[g_current_par], 9);
+}
+
+//////////////////////////////
 // IncreaseTime()
 //////////////////////////////
 
 void IncreaseTime() {
   DEBUG_PRINT(F("Increase time at: "));DEBUG_PRINTLN(g_par_cursor, 0);
-  switch (g_par_cursor) {
-    case 1: // milliseconds
-      if (g_par_times[g_current_par] == 5999999) {
-        break;
-      }
-      else {
-        g_par_times[g_current_par]++;
-      }
-      break;
-    case 2: // hundreds milliseconds
-      if (g_par_times[g_current_par] >= 5999990) {
-        break;
-      }
-      else {
-        g_par_times[g_current_par] += 10;
-      }
-      break;
-    case 3: // tens milliseconds
-      if (g_par_times[g_current_par] >= 5999900) {
-        break;
-      }
-      else {
-        g_par_times[g_current_par] += 100;
-      }
-      break;
-    case 4: // seconds
-      if (g_par_times[g_current_par] >= 5999000) {
-        break;
-      }
-      else {
-        g_par_times[g_current_par] += 1000;
-      }
-      break;
-    case 5: // ten seconds
-      if (g_par_times[g_current_par] >= 5990000) {
-        break;
-      }
-      else {
-        g_par_times[g_current_par] += 10000;
-      }
-      break;
-    case 6: // minutes
-      if (g_par_times[g_current_par] >= 5940000) {
-        break;
-      }
-      else {
-        g_par_times[g_current_par] += 60000;
-      }
-      break;
-    case 7: // 10 minutes
-      if (g_par_times[g_current_par] >= 5400000) {
-        break;
-      }
-      else {
-        g_par_times[g_current_par] += 600000;
-      }
-      break;
-  }
-  g_lcd.setCursor(5, 1);
-  lcd_print_time(&g_lcd, g_par_times[g_current_par], 9);
+  AdjustParTime(1);
 }
 
 //////////////////////////////
@@ -1229,66 +1218,7 @@ void IncreaseTime() {
 
 void DecreaseTime() {
   DEBUG_PRINT(F("Decrease time at: "));DEBUG_PRINTLN(g_par_cursor, 0);
-  switch (g_par_cursor) {
-    case 1:
-      if (g_par_times[g_current_par] < 1) {
-        break;
-      }
-      else {
-        g_par_times[g_current_par]--;
-      }
-      break;
-    case 2:
-      if (g_par_times[g_current_par] < 10) {
-        break;
-      }
-      else {
-        g_par_times[g_current_par] -= 10;
-      }
-      break;
-    case 3:
-      if (g_par_times[g_current_par] < 100) {
-        break;
-      }
-      else {
-        g_par_times[g_current_par] -= 100;
-      }
-      break;
-    case 4:
-      if (g_par_times[g_current_par] < 1000) {
-        break;
-      }
-      else {
-        g_par_times[g_current_par] -= 1000;
-      }
-      break;
-    case 5:
-      if (g_par_times[g_current_par] < 10000) {
-        break;
-      }
-      else {
-        g_par_times[g_current_par] -= 10000;
-      }
-      break;
-    case 6:
-      if (g_par_times[g_current_par] < 60000) {
-        break;
-      }
-      else {
-        g_par_times[g_current_par] -= 60000;
-      }
-      break;
-    case 7:
-      if (g_par_times[g_current_par] < 600000) {
-        break;
-      }
-      else {
-        g_par_times[g_current_par] -= 600000;
-      }
-      break;
-  }
-  g_lcd.setCursor(5, 1);
-  lcd_print_time(&g_lcd, g_par_times[g_current_par], 9);
+  AdjustParTime(-1);
 }
 
 //////////////////////////////
