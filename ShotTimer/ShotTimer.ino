@@ -129,11 +129,103 @@
 ////////////////////////////////////////////////////////////
 // CONSTANTS
 ////////////////////////////////////////////////////////////
-const uint8_p PROGMEM kMicPin = A0; //set the input for the mic/amplifier 
-                                    // the mic/amp is connected to analog pin 0
+
+//////////////////////////////
+// Hardware Configuration
+//////////////////////////////
+const uint8_p PROGMEM kMicPin = A0; // Microphone/amplifier input pin
 const uint8_p PROGMEM kButtonDur = 80;
 const int16_p PROGMEM kBeepDur = 400;
 const int16_p PROGMEM kBeepNote = NOTE_C4;
+
+//////////////////////////////
+// LCD Display Constants
+//////////////////////////////
+const uint8_t LCD_COLS = 16;         // LCD width in characters
+const uint8_t LCD_ROWS = 2;          // LCD height in rows
+const uint8_t LCD_DISPLAY_WIDTH_2 = 2;  // Standard 2-digit display width
+const uint8_t LCD_DISPLAY_WIDTH_3 = 3;  // 3-digit display width (for shot counter)
+const uint8_t LCD_TIME_WIDTH = 9;    // Width for time display (mm:ss.ms)
+
+//////////////////////////////
+// Timer and Delay Constants
+//////////////////////////////
+const uint16_t MILLIS_PER_SECOND = 1000;
+const uint16_t RANDOM_DELAY_2TO6_MIN = 2000;  // 2 seconds in ms
+const uint16_t RANDOM_DELAY_2TO6_MAX = 6001;  // 6 seconds in ms (exclusive)
+const uint16_t RANDOM_DELAY_1TO4_MIN = 1000;  // 1 second in ms
+const uint16_t RANDOM_DELAY_1TO4_MAX = 4001;  // 4 seconds in ms (exclusive)
+const uint8_t DELAY_SETTING_MAX = 12;         // Maximum delay setting value
+const uint8_t DELAY_SETTING_RANDOM_1TO4 = 11; // Setting value for random 1-4s
+const uint8_t DELAY_SETTING_RANDOM_2TO6 = 12; // Setting value for random 2-6s
+
+//////////////////////////////
+// Par Time Constants (in milliseconds)
+//////////////////////////////
+const unsigned long PAR_TIME_MAX = 5999999;        // Maximum par time: 99:59.999
+const unsigned long PAR_TIME_INCREMENT_1MS = 1;
+const unsigned long PAR_TIME_INCREMENT_10MS = 10;
+const unsigned long PAR_TIME_INCREMENT_100MS = 100;
+const unsigned long PAR_TIME_INCREMENT_1S = 1000;
+const unsigned long PAR_TIME_INCREMENT_10S = 10000;
+const unsigned long PAR_TIME_INCREMENT_1MIN = 60000;
+const unsigned long PAR_TIME_INCREMENT_10MIN = 600000;
+
+const unsigned long PAR_TIME_MAX_1MS = 5999999;
+const unsigned long PAR_TIME_MAX_10MS = 5999990;
+const unsigned long PAR_TIME_MAX_100MS = 5999900;
+const unsigned long PAR_TIME_MAX_1S = 5999000;
+const unsigned long PAR_TIME_MAX_10S = 5990000;
+const unsigned long PAR_TIME_MAX_1MIN = 5940000;
+const unsigned long PAR_TIME_MAX_10MIN = 5400000;
+
+const unsigned long PAR_TIME_MIN_1MS = 1;
+const unsigned long PAR_TIME_MIN_10MS = 10;
+const unsigned long PAR_TIME_MIN_100MS = 100;
+const unsigned long PAR_TIME_MIN_1S = 1000;
+const unsigned long PAR_TIME_MIN_10S = 10000;
+const unsigned long PAR_TIME_MIN_1MIN = 60000;
+const unsigned long PAR_TIME_MIN_10MIN = 600000;
+
+//////////////////////////////
+// Par Cursor Position Constants
+//////////////////////////////
+const uint8_t PAR_CURSOR_1MS = 1;
+const uint8_t PAR_CURSOR_10MS = 2;
+const uint8_t PAR_CURSOR_100MS = 3;
+const uint8_t PAR_CURSOR_1S = 4;
+const uint8_t PAR_CURSOR_10S = 5;
+const uint8_t PAR_CURSOR_1MIN = 6;
+const uint8_t PAR_CURSOR_10MIN = 7;
+const uint8_t PAR_CURSOR_MIN = 1;
+const uint8_t PAR_CURSOR_MAX = 7;
+const uint8_t PAR_CURSOR_DEFAULT = 4;  // Default to seconds position
+
+//////////////////////////////
+// Settings Range Constants
+//////////////////////////////
+const uint8_t BEEP_VOL_MIN = 0;
+const uint8_t BEEP_VOL_MAX = 10;
+const uint8_t SENSITIVITY_MIN = 0;
+const uint8_t SENSITIVITY_MAX = 20;
+const uint8_t SAMPLE_WINDOW_MIN = 10;   // 10ms minimum echo protection
+const uint8_t SAMPLE_WINDOW_MAX = 100;  // 100ms maximum echo protection
+const uint8_t SAMPLE_WINDOW_STEP = 10;  // 10ms increment steps
+
+//////////////////////////////
+// Sensitivity and Threshold Constants
+//////////////////////////////
+const int THRESHOLD_BASE = 650;           // Base threshold value
+const int THRESHOLD_SENSITIVITY_MULTIPLIER = 25;  // Multiplier for sensitivity adjustment
+const int THRESHOLD_DEFAULT = 625;        // Default threshold (650 - 25*1)
+
+//////////////////////////////
+// Default Settings Values
+//////////////////////////////
+const uint8_t DEFAULT_DELAY_TIME = 11;    // Default to random 1-4s
+const uint8_t DEFAULT_BEEP_VOL = 10;
+const uint8_t DEFAULT_SENSITIVITY = 1;
+const uint8_t DEFAULT_SAMPLE_WINDOW = 50;
 
 //////////////////////////////
 // PROGMEM
@@ -176,10 +268,10 @@ const int PROGMEM kShotLimit = 200;
 // GLOBAL VARIABLES
 ////////////////////////////////////////////////////////////
 
-byte g_delay_time = 11;
-byte g_beep_vol = 10;
-byte g_sensitivity = 1;
-byte g_sample_window = 50;
+byte g_delay_time = DEFAULT_DELAY_TIME;
+byte g_beep_vol = DEFAULT_BEEP_VOL;
+byte g_sensitivity = DEFAULT_SENSITIVITY;
+byte g_sample_window = DEFAULT_SAMPLE_WINDOW;
 // do we want to instantiate the size in setup()
 uint32_t g_shot_times[kShotLimit]; 
 unsigned long g_par_times[kParLimit]; 
@@ -187,8 +279,8 @@ uint32_t g_additive_par;
 byte g_current_shot; // REFACTOR, MAY NOT NEED TO BE GLOBAL
 byte g_review_shot;  // REFACTOR, MAY NOT NEED TO BE GLOBAL
 byte g_current_par;  // REFACTOR, MAY NOT NEED TO BE GLOBAL
-int g_threshold = 625; // The g_sensitivity is converted to a g_threshold value
-byte g_par_cursor = 1;
+int g_threshold = THRESHOLD_DEFAULT; // The g_sensitivity is converted to a g_threshold value
+byte g_par_cursor = PAR_CURSOR_DEFAULT;
 
 
 //////////////////////////////
@@ -430,9 +522,9 @@ void RecordShot() {
   DEBUG_PRINT(F(" - "));
   DEBUG_PRINT(F("\n"));
   g_lcd.setCursor(13, 0);
-  lcd_print(&g_lcd, g_current_shot + 1, 3);
+  lcd_print(&g_lcd, g_current_shot + 1, LCD_DISPLAY_WIDTH_3);
   g_lcd.setCursor(7, 1);
-  lcd_print_time(&g_lcd, g_shot_times[g_current_shot], 9); 
+  lcd_print_time(&g_lcd, g_shot_times[g_current_shot], LCD_TIME_WIDTH);
   g_current_shot++;
   if (g_current_shot == kShotLimit) { 
     DEBUG_PRINTLN(F("Out of room for shots"),0);
@@ -472,7 +564,7 @@ void on_menu_review_selected(MenuItem* p_menu_item) {
     g_lcd.setCursor(11, 0);
     lcd_print_p(&g_lcd, kSplit);
     g_lcd.setCursor(0, 1);
-    lcd_print_time(&g_lcd, g_shot_times[g_review_shot], 9);
+    lcd_print_time(&g_lcd, g_shot_times[g_review_shot], LCD_TIME_WIDTH);
     lcd_print_p(&g_lcd, kSpace);
     if (g_review_shot == 0) {
       lcd_print_p(&g_lcd, kFirst);
@@ -501,7 +593,7 @@ void DisplayShotReview() {
   g_lcd.setCursor(11, 0);
   lcd_print_p(&g_lcd, kSplit);
   g_lcd.setCursor(0, 1);
-  lcd_print_time(&g_lcd, g_shot_times[g_review_shot], 9);
+  lcd_print_time(&g_lcd, g_shot_times[g_review_shot], LCD_TIME_WIDTH);
   lcd_print_p(&g_lcd, kSpace);
   if (g_review_shot == 0) {
     lcd_print_p(&g_lcd, kFirst);
@@ -642,7 +734,7 @@ void CycleValueAndDisplay(int8_t &value, int8_t min_val, int8_t max_val, int8_t 
 
 void IncreaseDelay() {
   DEBUG_PRINTLN(F("IncreaseDelay()"), 0);
-  CycleValueAndDisplay(g_delay_time, 0, 12, 1);
+  CycleValueAndDisplay(g_delay_time, 0, DELAY_SETTING_MAX, 1);
 }
 
 //////////////////////////////
@@ -651,7 +743,7 @@ void IncreaseDelay() {
 
 void DecreaseDelay() {
   DEBUG_PRINTLN(F("DecreaseDelay()"), 0);
-  CycleValueAndDisplay(g_delay_time, 0, 12, -1);
+  CycleValueAndDisplay(g_delay_time, 0, DELAY_SETTING_MAX, -1);
 }
 
 //////////////////////////////
@@ -660,14 +752,14 @@ void DecreaseDelay() {
 
 void StartDelay() {
   DEBUG_PRINT(F("Start Delay: ")); DEBUG_PRINTLN(g_delay_time, 0);
-  if (g_delay_time > 11) {
-    delay(random(2000, 6001)); //from 2 to 6 seconds
+  if (g_delay_time > DELAY_SETTING_RANDOM_1TO4) {
+    delay(random(RANDOM_DELAY_2TO6_MIN, RANDOM_DELAY_2TO6_MAX)); // Random 2-6 seconds
   }
-  else if (g_delay_time == 11) {
-    delay(random(1000, 4001)); //from 1 to 4 seconds
+  else if (g_delay_time == DELAY_SETTING_RANDOM_1TO4) {
+    delay(random(RANDOM_DELAY_1TO4_MIN, RANDOM_DELAY_1TO4_MAX)); // Random 1-4 seconds
   }
   else {
-    delay(g_delay_time * 1000); //fixed number of seconds
+    delay(g_delay_time * MILLIS_PER_SECOND); // Fixed number of seconds
   }
 }
 
@@ -768,7 +860,7 @@ void CycleIntValueAndDisplay(uint8_t &value, uint8_t min_val, uint8_t max_val, i
 
 void IncreaseBeepVol() {
   DEBUG_PRINTLN(F("IncreaseBeepVoly()"), 0);
-  CycleIntValueAndDisplay(g_beep_vol, 0, 10, 1);
+  CycleIntValueAndDisplay(g_beep_vol, BEEP_VOL_MIN, BEEP_VOL_MAX, 1);
 }
 
 //////////////////////////////
@@ -777,7 +869,7 @@ void IncreaseBeepVol() {
 
 void DecreaseBeepVol() {
   DEBUG_PRINTLN(F("DecreaseBeepVoly()"), 0);
-  CycleIntValueAndDisplay(g_beep_vol, 0, 10, -1);
+  CycleIntValueAndDisplay(g_beep_vol, BEEP_VOL_MIN, BEEP_VOL_MAX, -1);
 }
 
 //////////////////////////////
@@ -808,7 +900,7 @@ void on_menu_sensitivity_selected(MenuItem* p_menu_item) {
 
 void IncreaseSensitivity() {
   DEBUG_PRINTLN(F("IncreaseSensitivity()"), 0);
-  CycleIntValueAndDisplay(g_sensitivity, 0, 20, 1);
+  CycleIntValueAndDisplay(g_sensitivity, SENSITIVITY_MIN, SENSITIVITY_MAX, 1);
   SensToThreshold();
 }
 
@@ -818,7 +910,7 @@ void IncreaseSensitivity() {
 
 void DecreaseSensitivity() {
   DEBUG_PRINTLN(F("DecreaseSensitivity()"), 0);
-  CycleIntValueAndDisplay(g_sensitivity, 0, 20, -1);
+  CycleIntValueAndDisplay(g_sensitivity, SENSITIVITY_MIN, SENSITIVITY_MAX, -1);
   SensToThreshold();
 }
 
@@ -851,19 +943,19 @@ void on_menu_echo_selected(MenuItem* p_menu_item) {
 
 void CycleSampleWindowAndDisplay(int8_t step) {
   if (step > 0) {
-    if (g_sample_window == 100) {
-      g_sample_window = 10;
+    if (g_sample_window == SAMPLE_WINDOW_MAX) {
+      g_sample_window = SAMPLE_WINDOW_MIN;
     }
     else {
-      g_sample_window += 10;
+      g_sample_window += SAMPLE_WINDOW_STEP;
     }
   }
   else {
-    if (g_sample_window == 10) {
-      g_sample_window = 100;
+    if (g_sample_window == SAMPLE_WINDOW_MIN) {
+      g_sample_window = SAMPLE_WINDOW_MAX;
     }
     else {
-      g_sample_window -= 10;
+      g_sample_window -= SAMPLE_WINDOW_STEP;
     }
   }
 
@@ -896,7 +988,7 @@ void DecreaseEchoProtect() {
 //////////////////////////////
 
 void SensToThreshold() {
-  g_threshold = 650 - (25 * g_sensitivity);
+  g_threshold = THRESHOLD_BASE - (THRESHOLD_SENSITIVITY_MULTIPLIER * g_sensitivity);
 }
 
 //////////////////////////////
@@ -963,7 +1055,7 @@ void on_menu_par_times_selected(MenuItem* p_menu_item) {
     g_lcd.setCursor(5, 0);
     g_lcd.print(F("Par"));
     g_lcd.setCursor(9, 0);
-    lcd_print(&g_lcd, (g_current_par + 1), 2);
+    lcd_print(&g_lcd, (g_current_par + 1), LCD_DISPLAY_WIDTH_2);
     g_lcd.setCursor(4, 1);
     if (g_current_par > 0) {
       lcd_print_p(&g_lcd, kPlus);
@@ -971,7 +1063,7 @@ void on_menu_par_times_selected(MenuItem* p_menu_item) {
     else {
       lcd_print_p(&g_lcd, kSpace);
     }
-    lcd_print_time(&g_lcd, g_par_times[g_current_par], 9);
+    lcd_print_time(&g_lcd, g_par_times[g_current_par], LCD_TIME_WIDTH);
     DEBUG_PRINTLN_P(tm.get_current_menu()->get_selected()->get_name(),0);
   }
   else {
@@ -995,7 +1087,7 @@ void DisplayParInfo() {
   else {
     lcd_print_p(&g_lcd, kSpace);
   }
-  lcd_print_time(&g_lcd, g_par_times[g_current_par], 9);
+  lcd_print_time(&g_lcd, g_par_times[g_current_par], LCD_TIME_WIDTH);
   DEBUG_PRINTLN_P(tm.get_current_menu()->get_selected()->get_name(),0);
 }
 
@@ -1044,7 +1136,7 @@ void EditPar() {
     lcd_print_p(&g_lcd, kClearLine);
     g_lcd.setCursor(0, 1);
     g_lcd.print(F("P")); 
-    lcd_print(&g_lcd, g_current_par + 1, 2);
+    lcd_print(&g_lcd, g_current_par + 1, LCD_DISPLAY_WIDTH_2);
     g_lcd.setCursor(4, 1);
     if (g_current_par > 0) {
       lcd_print_p(&g_lcd, kPlus);
@@ -1053,8 +1145,8 @@ void EditPar() {
       lcd_print_p(&g_lcd, kSpace);
     }
     g_lcd.setCursor(5, 1);
-    lcd_print_time(&g_lcd, g_par_times[g_current_par], 9);
-    g_par_cursor = 4; //reset cursor to the seconds position
+    lcd_print_time(&g_lcd, g_par_times[g_current_par], LCD_TIME_WIDTH);
+    g_par_cursor = PAR_CURSOR_DEFAULT; //reset cursor to the seconds position
     LCDCursor();
   }
   else {
@@ -1072,8 +1164,8 @@ void EditPar() {
 
 void LeftCursor() {
   DEBUG_PRINTLN(F("LeftCursor()"), 0);
-  if (g_par_cursor == 7) {
-    g_par_cursor = 1;
+  if (g_par_cursor == PAR_CURSOR_MAX) {
+    g_par_cursor = PAR_CURSOR_MIN;
   }
   else {
     g_par_cursor++;
@@ -1087,8 +1179,8 @@ void LeftCursor() {
 
 void RightCursor() {
   DEBUG_PRINTLN(F("RightCursor()"), 0);
-  if (g_par_cursor == 1) {
-    g_par_cursor = 7;
+  if (g_par_cursor == PAR_CURSOR_MIN) {
+    g_par_cursor = PAR_CURSOR_MAX;
   }
   else {
     g_par_cursor--;
@@ -1103,33 +1195,33 @@ void RightCursor() {
 void LCDCursor() {
   DEBUG_PRINT(F("Displaying Cursor at: "));DEBUG_PRINTLN(g_par_cursor, 0);
   switch (g_par_cursor) {
-    case 1: //milliseconds
+    case PAR_CURSOR_1MS: //milliseconds
       g_lcd.setCursor(11, 0); //icon at 13
       g_lcd.print(F("  _"));
       g_lcd.setCursor(5, 0); //left behind icon at 5
       lcd_print_p(&g_lcd, kSpace);
       break;
-    case 2: //ten milliseconds
+    case PAR_CURSOR_10MS: //ten milliseconds
       g_lcd.setCursor(10, 0); //icon at 12
       lcd_print_p(&g_lcd, kCursor);
       break;
-    case 3: //hundred milliseconds
+    case PAR_CURSOR_100MS: //hundred milliseconds
       g_lcd.setCursor(9, 0); //icon at 11
       lcd_print_p(&g_lcd, kCursor);
       break;
-    case 4: //seconds
+    case PAR_CURSOR_1S: //seconds
       g_lcd.setCursor(7, 0); //icon at 9
       lcd_print_p(&g_lcd, kCursor);
       break;
-    case 5: //ten seconds
+    case PAR_CURSOR_10S: //ten seconds
       g_lcd.setCursor(6, 0); // icon at 8
       lcd_print_p(&g_lcd, kCursor);
       break;
-    case 6: //minutes
+    case PAR_CURSOR_1MIN: //minutes
       g_lcd.setCursor(4, 0); //icon at 6
       lcd_print_p(&g_lcd, kCursor);
       break;
-    case 7: //ten minutes
+    case PAR_CURSOR_10MIN: //ten minutes
       g_lcd.setCursor(5, 0); //icon at 5
       g_lcd.print(F("_  "));
       g_lcd.setCursor(13, 0); //left behind icon at 13
@@ -1144,45 +1236,45 @@ void LCDCursor() {
 
 void AdjustParTime(int8_t direction) {
   // direction: 1 for increase, -1 for decrease
-  unsigned long increment = 1;
-  unsigned long max_val = 5999999;
+  unsigned long increment = PAR_TIME_INCREMENT_1MS;
+  unsigned long max_val = PAR_TIME_MAX;
   unsigned long min_val = 0;
 
   switch (g_par_cursor) {
-    case 1: // milliseconds
-      increment = 1;
-      max_val = 5999999;
-      min_val = 1;
+    case PAR_CURSOR_1MS: // milliseconds
+      increment = PAR_TIME_INCREMENT_1MS;
+      max_val = PAR_TIME_MAX_1MS;
+      min_val = PAR_TIME_MIN_1MS;
       break;
-    case 2: // hundreds milliseconds
-      increment = 10;
-      max_val = 5999990;
-      min_val = 10;
+    case PAR_CURSOR_10MS: // tens milliseconds
+      increment = PAR_TIME_INCREMENT_10MS;
+      max_val = PAR_TIME_MAX_10MS;
+      min_val = PAR_TIME_MIN_10MS;
       break;
-    case 3: // tens milliseconds
-      increment = 100;
-      max_val = 5999900;
-      min_val = 100;
+    case PAR_CURSOR_100MS: // hundreds milliseconds
+      increment = PAR_TIME_INCREMENT_100MS;
+      max_val = PAR_TIME_MAX_100MS;
+      min_val = PAR_TIME_MIN_100MS;
       break;
-    case 4: // seconds
-      increment = 1000;
-      max_val = 5999000;
-      min_val = 1000;
+    case PAR_CURSOR_1S: // seconds
+      increment = PAR_TIME_INCREMENT_1S;
+      max_val = PAR_TIME_MAX_1S;
+      min_val = PAR_TIME_MIN_1S;
       break;
-    case 5: // ten seconds
-      increment = 10000;
-      max_val = 5990000;
-      min_val = 10000;
+    case PAR_CURSOR_10S: // ten seconds
+      increment = PAR_TIME_INCREMENT_10S;
+      max_val = PAR_TIME_MAX_10S;
+      min_val = PAR_TIME_MIN_10S;
       break;
-    case 6: // minutes
-      increment = 60000;
-      max_val = 5940000;
-      min_val = 60000;
+    case PAR_CURSOR_1MIN: // minutes
+      increment = PAR_TIME_INCREMENT_1MIN;
+      max_val = PAR_TIME_MAX_1MIN;
+      min_val = PAR_TIME_MIN_1MIN;
       break;
-    case 7: // 10 minutes
-      increment = 600000;
-      max_val = 5400000;
-      min_val = 600000;
+    case PAR_CURSOR_10MIN: // 10 minutes
+      increment = PAR_TIME_INCREMENT_10MIN;
+      max_val = PAR_TIME_MAX_10MIN;
+      min_val = PAR_TIME_MIN_10MIN;
       break;
   }
 
@@ -1200,7 +1292,7 @@ void AdjustParTime(int8_t direction) {
   }
 
   g_lcd.setCursor(5, 1);
-  lcd_print_time(&g_lcd, g_par_times[g_current_par], 9);
+  lcd_print_time(&g_lcd, g_par_times[g_current_par], LCD_TIME_WIDTH);
 }
 
 //////////////////////////////
@@ -1337,7 +1429,7 @@ void MenuSetup()
 
 void LCDSetup() {
   DEBUG_PRINTLN(F("Setting up the LCD"),0);
-  g_lcd.begin(16, 2);
+  g_lcd.begin(LCD_COLS, LCD_ROWS);
   g_lcd.setBacklight(WHITE);
   RenderMenu();
 }
