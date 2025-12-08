@@ -622,7 +622,7 @@ void ExitEchoState() {
 // Menu Rendering
 //////////////////////////////
 
-void RenderMenu() {
+void DisplayCurrentMenu() {
   Menu const* kMenu = tm.get_current_menu();
   g_lcd.setBacklight(WHITE);
   g_lcd.clear();
@@ -708,7 +708,7 @@ void on_menu_start_selected(MenuItem* p_menu_item) {
 // Run the shot timer - runs in loop()
 //////////////////////////////
 
-void RunTimer(ProgramState* p_state, boolean* par_state) {
+void ProcessTimerState(ProgramState* p_state, boolean* par_state) {
   if (*p_state == TIMER)
   { 
     ShotListener();
@@ -736,7 +736,7 @@ void ParBeeps(boolean* par_state)
         if (time_elapsed <= (g_additive_par + (g_sample_window / 2)) 
           && time_elapsed >= (g_additive_par - g_sample_window / 2)) {
           DEBUG_PRINTLN(F("PAR BEEP!"),0);
-          BEEP();  
+          PlayAlertBeep();
         }
       }
 
@@ -1187,7 +1187,7 @@ void DecreaseEchoProtect() {
 // convert g_sensitivity to g_threshold
 //////////////////////////////
 
-void SensToThreshold() {
+void ConvertSensitivityToThreshold() {
   g_threshold = THRESHOLD_BASE - (THRESHOLD_SENSITIVITY_MULTIPLIER * g_sensitivity);
 }
 
@@ -1266,8 +1266,8 @@ void DisplayParInfo() {
 // ParDown - Navigate down in par times list
 //////////////////////////////
 
-void ParDown() {
-  DEBUG_PRINTLN(F("ParDown()"), 0);
+void NavigateToPreviousPar() {
+  DEBUG_PRINTLN(F("NavigateToPreviousPar()"), 0);
   if (g_current_par == 0) {
     g_current_par = kParLimit - 1;
   }
@@ -1281,8 +1281,8 @@ void ParDown() {
 // ParUp - Navigate up in par times list
 //////////////////////////////
 
-void ParUp() {
-  DEBUG_PRINTLN(F("ParUp()"), 1);
+void NavigateToNextPar() {
+  DEBUG_PRINTLN(F("NavigateToNextPar()"), 1);
   DEBUG_PRINTLN(kParLimit,0);
   if (g_current_par == kParLimit - 1) {
     g_current_par = 0;
@@ -1301,7 +1301,7 @@ void ParUp() {
 // EditPar - Enter par time editing mode
 //////////////////////////////
 
-void EditPar() {
+void ToggleParEditMode() {
   if(!IsInState(SETINDPAR)){
     TransitionToState(SETINDPAR);
   }
@@ -1340,14 +1340,14 @@ void RightCursor() {
   else {
     g_par_cursor--;
   }
-  LCDCursor();
+  UpdateParCursorDisplay();
 }
 
 //////////////////////////////
 // LCDCursor - Display cursor at current position on screen
 //////////////////////////////
 
-void LCDCursor() {
+void UpdateParCursorDisplay() {
   DEBUG_PRINT(F("Displaying Cursor at: "));DEBUG_PRINTLN(g_par_cursor, 0);
   switch (g_par_cursor) {
     case PAR_CURSOR_1MS: //milliseconds
@@ -1440,7 +1440,7 @@ void DecreaseTime() {
 // BEEP
 //////////////////////////////
 
-void BEEP() {
+void PlayAlertBeep() {
   toneAC(kBeepNote, g_beep_vol, kBeepDur, true);
 }
 
@@ -1463,7 +1463,7 @@ void ButtonTone() {
 // the existing value. 
 //////////////////////////////
 
-void EEPROMSetup() {
+void InitializeEEPROMSettings() {
   DEBUG_PRINTLN(F("Checking if EEPROM needs to be set..."), 0);
   // Unset EEPROM values are set to 255, NOT 0
   // if ANY of our EEPROM stored settings come back 255, we'll know that the 
@@ -1509,7 +1509,7 @@ void EEPROMSetup() {
       DEBUG_PRINTLN(F("Set g_sample_window to "), 0);
       DEBUG_PRINTLN(g_sample_window, 0);
   }
-  SensToThreshold(); 
+  ConvertSensitivityToThreshold();
 }
 
 //////////////////////////////
@@ -1550,11 +1550,11 @@ void MenuSetup()
 // LCD Setup
 //////////////////////////////
 
-void LCDSetup() {
+void InitializeLCD() {
   DEBUG_PRINTLN(F("Setting up the LCD"),0);
   g_lcd.begin(LCD_COLS, LCD_ROWS);
   g_lcd.setBacklight(WHITE);
-  RenderMenu();
+  DisplayCurrentMenu();
 }
 
 ////////////////////////////////////////////////////////////
@@ -1579,31 +1579,31 @@ void HandleMenuSelect() {
   DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
   DEBUG_PRINTLN_P(tm.get_current_menu()->get_name(),0);
   tm.select();
-  if(IsInState(MENU)){RenderMenu();}
+  if(IsInState(MENU)){DisplayCurrentMenu();}
 }
 
 void HandleMenuRight() {
   DEBUG_PRINTLN(F("RIGHT/SELECT"), 0);
   tm.select();
-  if(IsInState(MENU)){RenderMenu();}
+  if(IsInState(MENU)){DisplayCurrentMenu();}
 }
 
 void HandleMenuLeft() {
   DEBUG_PRINTLN(F("LEFT/BACK"), 0);
   tm.back();
-  RenderMenu();
+  DisplayCurrentMenu();
 }
 
 void HandleMenuDown() {
   DEBUG_PRINTLN(F("DOWN/NEXT"), 0);
   tm.next();
-  RenderMenu();
+  DisplayCurrentMenu();
 }
 
 void HandleMenuUp() {
   DEBUG_PRINTLN(F("UP/PREV"), 0);
   tm.prev();
-  RenderMenu();
+  DisplayCurrentMenu();
 }
 
 void HandleTimerSelect() {
@@ -1672,20 +1672,20 @@ void HandleParTimesLeft() {
 }
 
 void HandleParDown() {
-  DEBUG_PRINTLN(F("DOWN/ParDown()"), 0);
+  DEBUG_PRINTLN(F("DOWN/NavigateToPreviousPar()"), 0);
   DEBUG_PRINTLN_P(tm.get_current_menu()->get_selected()->get_name(),0);
-  ParDown();
+  NavigateToPreviousPar();
 }
 
 void HandleParUp() {
-  DEBUG_PRINTLN(F("UP/ParUp()"), 0);
+  DEBUG_PRINTLN(F("UP/NavigateToNextPar()"), 0);
   DEBUG_PRINTLN_P(tm.get_current_menu()->get_selected()->get_name(),0);
-  ParUp();
+  NavigateToNextPar();
 }
 
 void HandleIndParSelect() {
-  DEBUG_PRINTLN(F("SELECT/EditPar()"), 0);
-  EditPar();
+  DEBUG_PRINTLN(F("SELECT/ToggleParEditMode()"), 0);
+  ToggleParEditMode();
 }
 
 void HandleRightCursor() {
@@ -1920,14 +1920,14 @@ void ShotListener() {
 void setup() {
   randomSeed(analogRead(1));
   DEBUG_SETUP();
-  EEPROMSetup();
+  InitializeEEPROMSettings();
   MenuSetup();
-  LCDSetup();
+  InitializeLCD();
   DEBUG_PRINTLN(F("Setup Complete"), 0);
 }
 
 void loop() {
-  //Probably all button actions should come before RunTimer()
-  ButtonListener(&g_lcd, &g_buttons_state, &g_current_state); 
-  RunTimer(&g_current_state, &g_par_enabled); 
-} 
+  //Probably all button actions should come before ProcessTimerState()
+  ButtonListener(&g_lcd, &g_buttons_state, &g_current_state);
+  ProcessTimerState(&g_current_state, &g_par_enabled);
+}
