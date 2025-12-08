@@ -1347,268 +1347,344 @@ void LCDSetup() {
 ////////////////////////////////////////////////////////////
 
 //////////////////////////////
-// Button Listener
-// returns true if the button state 
+// Button Handler Helper Functions
 //////////////////////////////
-void ButtonListener(Adafruit_RGBLCDShield* g_lcd, 
+
+// Typedef for button action functions
+typedef void (*ButtonActionFunc)();
+
+// Structure to define button mappings for each state
+struct ButtonMapping {
+  uint8_t button;
+  ButtonActionFunc action;
+};
+
+// Helper functions for common button actions
+void HandleMenuSelect() {
+  DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
+  DEBUG_PRINTLN_P(tm.get_current_menu()->get_name(),0);
+  tm.select();
+  if(g_current_state == MENU){RenderMenu();}
+}
+
+void HandleMenuRight() {
+  DEBUG_PRINTLN(F("RIGHT/SELECT"), 0);
+  tm.select();
+  if(g_current_state == MENU){RenderMenu();}
+}
+
+void HandleMenuLeft() {
+  DEBUG_PRINTLN(F("LEFT/BACK"), 0);
+  tm.back();
+  RenderMenu();
+}
+
+void HandleMenuDown() {
+  DEBUG_PRINTLN(F("DOWN/NEXT"), 0);
+  tm.next();
+  RenderMenu();
+}
+
+void HandleMenuUp() {
+  DEBUG_PRINTLN(F("UP/PREV"), 0);
+  tm.prev();
+  RenderMenu();
+}
+
+void HandleTimerSelect() {
+  DEBUG_PRINTLN(F("SELECT/StopTimer()"), 0);
+  StopTimer();
+}
+
+void HandleReviewSelect() {
+  DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
+  tm.select();
+}
+
+void HandleReviewRight() {
+  DEBUG_PRINTLN(F("RIGHT/RateOfFire()"), 0);
+  RateOfFire(&g_include_draw);
+}
+
+void HandleReviewLeft() {
+  DEBUG_PRINTLN(F("LEFT/g_review_shot--;NextShot()"), 0);
+  g_review_shot--;
+  NextShot();
+}
+
+void HandleReviewDown() {
+  DEBUG_PRINTLN(F("DOWN/PreviousShot()"), 0);
+  PreviousShot();
+}
+
+void HandleReviewUp() {
+  DEBUG_PRINTLN(F("UP/NextShot()"), 0);
+  NextShot();
+}
+
+void HandleParStateSelect() {
+  DEBUG_PRINTLN(F("SELECT/(BACK)SELECT"), 0);
+  DEBUG_PRINTLN_P(tm.get_current_menu()->get_name(),0);
+  tm.select();
+  DEBUG_PRINTLN_P(tm.get_current_menu()->get_name(),0);
+}
+
+void HandleParStateLeft() {
+  DEBUG_PRINTLN(F("LEFT/(BACK)SELECT"), 0);
+  tm.select();
+}
+
+void HandleToggleParStateDown() {
+  DEBUG_PRINTLN(F("DOWN/ToggleParState()"), 0);
+  ToggleParState();
+}
+
+void HandleToggleParStateUp() {
+  DEBUG_PRINTLN(F("UP/ToggleParState()"), 0);
+  ToggleParState();
+}
+
+void HandleParTimesSelect() {
+  DEBUG_PRINTLN_P(tm.get_current_menu()->get_selected()->get_name(),0);
+  DEBUG_PRINTLN(F("SELECT/EditPar"), 0);
+  EditPar();
+}
+
+void HandleParTimesLeft() {
+  DEBUG_PRINTLN(F("LEFT/(BACK)SELECT"), 0);
+  DEBUG_PRINTLN_P(tm.get_current_menu()->get_selected()->get_name(),0);
+  tm.select();
+}
+
+void HandleParDown() {
+  DEBUG_PRINTLN(F("DOWN/ParDown()"), 0);
+  DEBUG_PRINTLN_P(tm.get_current_menu()->get_selected()->get_name(),0);
+  ParDown();
+}
+
+void HandleParUp() {
+  DEBUG_PRINTLN(F("UP/ParUp()"), 0);
+  DEBUG_PRINTLN_P(tm.get_current_menu()->get_selected()->get_name(),0);
+  ParUp();
+}
+
+void HandleIndParSelect() {
+  DEBUG_PRINTLN(F("SELECT/EditPar()"), 0);
+  EditPar();
+}
+
+void HandleRightCursor() {
+  DEBUG_PRINTLN(F("RIGHT/RightCursor()"), 0);
+  RightCursor();
+}
+
+void HandleLeftCursor() {
+  DEBUG_PRINTLN(F("LEFT/LeftCursor()"), 0);
+  LeftCursor();
+}
+
+void HandleDecreaseTime() {
+  DEBUG_PRINTLN(F("DOWN/DecreaseTime()"), 0);
+  DecreaseTime();
+}
+
+void HandleIncreaseTime() {
+  DEBUG_PRINTLN(F("UP/IncreaseTime()"), 0);
+  IncreaseTime();
+}
+
+void HandleSettingsSelect() {
+  DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
+  tm.select();
+}
+
+void HandleSettingsLeft() {
+  DEBUG_PRINTLN(F("LEFT/(BACK)SELECT"), 0);
+  tm.select();
+}
+
+void HandleDecreaseDelay() {
+  DEBUG_PRINTLN(F("DOWN/DecreaseDelay()"), 0);
+  DecreaseDelay();
+}
+
+void HandleIncreaseDelay() {
+  DEBUG_PRINTLN(F("UP/IncreaseDelay()"), 0);
+  IncreaseDelay();
+}
+
+void HandleToggleIncludeDrawDown() {
+  DEBUG_PRINTLN(F("DOWN/ToggleIncludeDraw()"), 0);
+  ToggleIncludeDraw();
+}
+
+void HandleToggleIncludeDrawUp() {
+  DEBUG_PRINTLN(F("UP/ToggleIncludeDraw()"), 0);
+  ToggleIncludeDraw();
+}
+
+void HandleDecreaseBeepVol() {
+  DEBUG_PRINTLN(F("DOWN/DecreaseBeepVol()"), 0);
+  DecreaseBeepVol();
+}
+
+void HandleIncreaseBeepVol() {
+  DEBUG_PRINTLN(F("UP/IncreaseBeepVol()"), 0);
+  IncreaseBeepVol();
+}
+
+void HandleDecreaseSensitivity() {
+  DEBUG_PRINTLN(F("DOWN/DecreaseSensitivity())"), 0);
+  DecreaseSensitivity();
+}
+
+void HandleIncreaseSensitivity() {
+  DEBUG_PRINTLN(F("UP/IncreaseSensitivity()"), 0);
+  IncreaseSensitivity();
+}
+
+void HandleDecreaseEchoProtect() {
+  DEBUG_PRINTLN(F("DOWN/DecreaseEchoProtect();)"), 0);
+  DecreaseEchoProtect();
+}
+
+void HandleIncreaseEchoProtect() {
+  DEBUG_PRINTLN(F("UP/IncreaseEchoProtect();"), 0);
+  IncreaseEchoProtect();
+}
+
+//////////////////////////////
+// Button Listener
+// Returns true if the button state changed
+//////////////////////////////
+void ButtonListener(Adafruit_RGBLCDShield* g_lcd,
                     uint8_t* b_state, ProgramState* p_state) {
-  //DEBUG_PRINT(F("p_state: ")); DEBUG_PRINTLN(*p_state,0);
-  //DEBUG_PRINT(F("g_current_state: ")); DEBUG_PRINTLN(g_current_state,0);
   ///////////////
   // buttonStateManager
   ///////////////
-  //DEBUG_PRINTLN(F("Listening to button input"),0);
   uint8_t state_now = g_lcd->readButtons();
-  //DEBUG_PRINT(F("state_now: ")); DEBUG_PRINTLN(state_now,0);
-  //DEBUG_PRINT(F("b_state: ")); DEBUG_PRINTLN(*b_state, 0);
   uint8_t new_button = state_now & ~*b_state; // true if state_now != b_state
   if (new_button) {DEBUG_PRINT(F("Button Pushed: "));}
   *b_state = state_now;
-  ///////////////
+
+  // Early return if no button pressed
+  if (!new_button) return;
 
   ///////////////
-  // buttonReactor
+  // buttonReactor - Table-driven approach
   ///////////////
-  switch (*p_state){
-    case MENU:
-      switch (new_button) {
-        case BUTTON_SELECT:
-          DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
-          DEBUG_PRINTLN_P(tm.get_current_menu()->get_name(),0);
-          tm.select();
-          if(g_current_state == MENU){RenderMenu();}
-          break;
-        case BUTTON_RIGHT:
-          DEBUG_PRINTLN(F("RIGHT/SELECT"), 0);
-          tm.select();
-          if(g_current_state == MENU){RenderMenu();}
-          break;
-        case BUTTON_LEFT:
-          DEBUG_PRINTLN(F("LEFT/BACK"), 0);
-          tm.back();
-          RenderMenu();
-          break;
-        case BUTTON_DOWN:
-          DEBUG_PRINTLN(F("DOWN/NEXT"), 0);
-          tm.next();
-          RenderMenu();
-          break;
-        case BUTTON_UP:
-          DEBUG_PRINTLN(F("UP/PREV"), 0);
-          tm.prev();
-          RenderMenu();
-          break;
-        }
-      break;
+
+  // Define button mappings for each state
+  static const ButtonMapping menu_map[] = {
+    {BUTTON_SELECT, HandleMenuSelect},
+    {BUTTON_RIGHT, HandleMenuRight},
+    {BUTTON_LEFT, HandleMenuLeft},
+    {BUTTON_DOWN, HandleMenuDown},
+    {BUTTON_UP, HandleMenuUp},
+    {0, NULL}
+  };
+
+  static const ButtonMapping review_map[] = {
+    {BUTTON_SELECT, HandleReviewSelect},
+    {BUTTON_RIGHT, HandleReviewRight},
+    {BUTTON_LEFT, HandleReviewLeft},
+    {BUTTON_DOWN, HandleReviewDown},
+    {BUTTON_UP, HandleReviewUp},
+    {0, NULL}
+  };
+
+  static const ButtonMapping setparstate_map[] = {
+    {BUTTON_SELECT, HandleParStateSelect},
+    {BUTTON_LEFT, HandleParStateLeft},
+    {BUTTON_DOWN, HandleToggleParStateDown},
+    {BUTTON_UP, HandleToggleParStateUp},
+    {0, NULL}
+  };
+
+  static const ButtonMapping setpartimes_map[] = {
+    {BUTTON_SELECT, HandleParTimesSelect},
+    {BUTTON_LEFT, HandleParTimesLeft},
+    {BUTTON_DOWN, HandleParDown},
+    {BUTTON_UP, HandleParUp},
+    {0, NULL}
+  };
+
+  static const ButtonMapping setindpar_map[] = {
+    {BUTTON_SELECT, HandleIndParSelect},
+    {BUTTON_RIGHT, HandleRightCursor},
+    {BUTTON_LEFT, HandleLeftCursor},
+    {BUTTON_DOWN, HandleDecreaseTime},
+    {BUTTON_UP, HandleIncreaseTime},
+    {0, NULL}
+  };
+
+  static const ButtonMapping setdelay_map[] = {
+    {BUTTON_SELECT, HandleSettingsSelect},
+    {BUTTON_LEFT, HandleSettingsLeft},
+    {BUTTON_DOWN, HandleDecreaseDelay},
+    {BUTTON_UP, HandleIncreaseDelay},
+    {0, NULL}
+  };
+
+  static const ButtonMapping setrofdraw_map[] = {
+    {BUTTON_SELECT, HandleParStateSelect},
+    {BUTTON_LEFT, HandleParStateLeft},
+    {BUTTON_DOWN, HandleToggleIncludeDrawDown},
+    {BUTTON_UP, HandleToggleIncludeDrawUp},
+    {0, NULL}
+  };
+
+  static const ButtonMapping setbeep_map[] = {
+    {BUTTON_SELECT, HandleSettingsSelect},
+    {BUTTON_LEFT, HandleSettingsLeft},
+    {BUTTON_DOWN, HandleDecreaseBeepVol},
+    {BUTTON_UP, HandleIncreaseBeepVol},
+    {0, NULL}
+  };
+
+  static const ButtonMapping setsens_map[] = {
+    {BUTTON_SELECT, HandleSettingsSelect},
+    {BUTTON_LEFT, HandleSettingsLeft},
+    {BUTTON_DOWN, HandleDecreaseSensitivity},
+    {BUTTON_UP, HandleIncreaseSensitivity},
+    {0, NULL}
+  };
+
+  static const ButtonMapping setecho_map[] = {
+    {BUTTON_SELECT, HandleSettingsSelect},
+    {BUTTON_LEFT, HandleSettingsLeft},
+    {BUTTON_DOWN, HandleDecreaseEchoProtect},
+    {BUTTON_UP, HandleIncreaseEchoProtect},
+    {0, NULL}
+  };
+
+  // Select the appropriate button mapping based on state
+  const ButtonMapping* current_map = NULL;
+  switch (*p_state) {
+    case MENU:        current_map = menu_map; break;
     case TIMER:
-      if (new_button & BUTTON_SELECT){
-        DEBUG_PRINTLN(F("SELECT/StopTimer()"), 0);
-        StopTimer();
+      // TIMER state only handles SELECT button
+      if (new_button & BUTTON_SELECT) HandleTimerSelect();
+      return;
+    case REVIEW:      current_map = review_map; break;
+    case SETPARSTATE: current_map = setparstate_map; break;
+    case SETPARTIMES: current_map = setpartimes_map; break;
+    case SETINDPAR:   current_map = setindpar_map; break;
+    case SETDELAY:    current_map = setdelay_map; break;
+    case SETROFDRAW:  current_map = setrofdraw_map; break;
+    case SETBEEP:     current_map = setbeep_map; break;
+    case SETSENS:     current_map = setsens_map; break;
+    case SETECHO:     current_map = setecho_map; break;
+  }
+
+  // Execute the action for the pressed button
+  if (current_map != NULL) {
+    for (int i = 0; current_map[i].action != NULL; i++) {
+      if (new_button & current_map[i].button) {
+        current_map[i].action();
+        break;
       }
-      break;
-    case REVIEW:
-      switch (new_button) {
-        case BUTTON_SELECT:
-          DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
-          tm.select();
-          break;
-        case BUTTON_RIGHT:
-          DEBUG_PRINTLN(F("RIGHT/RateOfFire()"), 0);
-          RateOfFire(&g_include_draw);
-          break;
-        case BUTTON_LEFT:
-          DEBUG_PRINTLN(F("LEFT/g_review_shot--;NextShot()"), 0);
-          g_review_shot--;
-          NextShot();
-          break;
-        case BUTTON_DOWN:
-          DEBUG_PRINTLN(F("DOWN/PreviousShot()"), 0);
-          PreviousShot();
-          //@TODO<-- Maybe I should be building a shot string class, with 
-          //functions, rather than using functions to operate on a global array. 
-          break;
-        case BUTTON_UP:
-          DEBUG_PRINTLN(F("UP/NextShot()"), 0);
-          NextShot();
-          break;
-        }
-      break;
-    case SETPARSTATE:
-      switch (new_button) {
-        case BUTTON_SELECT:
-          DEBUG_PRINTLN(F("SELECT/(BACK)SELECT"), 0);
-          DEBUG_PRINTLN_P(tm.get_current_menu()->get_name(),0);
-          tm.select();
-          DEBUG_PRINTLN_P(tm.get_current_menu()->get_name(),0);
-          break;
-        case BUTTON_LEFT:
-          DEBUG_PRINTLN(F("LEFT/(BACK)SELECT"), 0);
-          tm.select();
-          break;
-        case BUTTON_DOWN:
-          DEBUG_PRINTLN(F("DOWN/ToggleParState()"), 0);
-          ToggleParState(); 
-          // @TODO<-- Maybe I should build a par times class with par state and 
-          // array of part times - and have functions on the class if function 
-          // names of all objects I manipulate with my buttons are the same and 
-          // on the same buttons - could use polymorphism? 
-          break;
-        case BUTTON_UP:
-          DEBUG_PRINTLN(F("UP/ToggleParState()"), 0);
-          ToggleParState();
-          break;
-        }
-      break;
-    case SETPARTIMES:
-      switch (new_button) {
-        case BUTTON_SELECT:
-          DEBUG_PRINTLN_P(tm.get_current_menu()->get_selected()->get_name(),0);
-          DEBUG_PRINTLN(F("SELECT/EditPar"), 0);
-          EditPar();
-          break;
-        case BUTTON_LEFT:
-          DEBUG_PRINTLN(F("LEFT/(BACK)SELECT"), 0);
-          DEBUG_PRINTLN_P(tm.get_current_menu()->get_selected()->get_name(),0);
-          tm.select(); //@TODO: Bug here
-          break;
-        case BUTTON_DOWN:
-          DEBUG_PRINTLN(F("DOWN/ParDown()"), 0);
-          DEBUG_PRINTLN_P(tm.get_current_menu()->get_selected()->get_name(),0);
-          ParDown(); 
-          break;
-        case BUTTON_UP:
-          DEBUG_PRINTLN(F("UP/ParUp()"), 0);
-          DEBUG_PRINTLN_P(tm.get_current_menu()->get_selected()->get_name(),0);
-          ParUp();
-          break;
-        }
-      break;
-    case SETINDPAR:
-      switch (new_button) {
-        case BUTTON_SELECT:
-          DEBUG_PRINTLN(F("SELECT/EditPar()"), 0);
-          EditPar();
-          break;
-        case BUTTON_RIGHT:
-          DEBUG_PRINTLN(F("RIGHT/RightCursor()"), 0);
-          RightCursor();
-          break;
-        case BUTTON_LEFT:
-          DEBUG_PRINTLN(F("LEFT/LeftCursor()"), 0);
-          LeftCursor();
-          break;
-        case BUTTON_DOWN:
-          DEBUG_PRINTLN(F("DOWN/DecreaseTime()"), 0);
-          DecreaseTime();
-          break;
-        case BUTTON_UP:
-          DEBUG_PRINTLN(F("UP/IncreaseTime()"), 0);
-          IncreaseTime();
-          break;
-        }
-      break;
-    case SETDELAY:
-      switch (new_button) {
-        case BUTTON_SELECT:
-          DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
-          tm.select();
-          break;
-        case BUTTON_LEFT:
-          DEBUG_PRINTLN(F("LEFT/(BACK)SELECT"), 0);
-          tm.select(); //@TODO: Bug here
-          break;
-        case BUTTON_DOWN:
-          DEBUG_PRINTLN(F("DOWN/DecreaseDelay()"), 0);
-          DecreaseDelay(); 
-          break;
-        case BUTTON_UP:
-          DEBUG_PRINTLN(F("UP/IncreaseDelay()"), 0);
-          IncreaseDelay();
-          break;
-        }
-      break;
-    case SETROFDRAW:
-      switch (new_button) {
-        case BUTTON_SELECT:
-          DEBUG_PRINTLN(F("SELECT/(BACK)SELECT"), 0);
-          DEBUG_PRINTLN_P(tm.get_current_menu()->get_name(),0);
-          tm.select();
-          DEBUG_PRINTLN_P(tm.get_current_menu()->get_name(),0);
-          break;
-        case BUTTON_LEFT:
-          DEBUG_PRINTLN(F("LEFT/(BACK)SELECT"), 0);
-          tm.select();
-          break;
-        case BUTTON_DOWN:
-          DEBUG_PRINTLN(F("DOWN/ToggleParState()"), 0);
-          ToggleIncludeDraw();
-          break;
-        case BUTTON_UP:
-          DEBUG_PRINTLN(F("UP/ToggleParState()"), 0);
-          ToggleIncludeDraw();
-          break;
-        }
-      break;
-    case SETBEEP:
-      switch (new_button) {
-        case BUTTON_SELECT:
-          DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
-          tm.select();
-          break;
-        case BUTTON_LEFT:
-          DEBUG_PRINTLN(F("LEFT/(BACK)SELECT"), 0);
-          tm.select(); 
-          break;
-        case BUTTON_DOWN:
-          DEBUG_PRINTLN(F("DOWN/DecreaseBeepVol()"), 0);
-          DecreaseBeepVol();
-          break;
-        case BUTTON_UP:
-          DEBUG_PRINTLN(F("UP/IncreaseBeepVol()"), 0);
-          IncreaseBeepVol();
-          break;
-        }
-      break;
-    case SETSENS:
-      switch (new_button) {
-        case BUTTON_SELECT:
-          DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
-          tm.select();
-          break;
-        case BUTTON_LEFT:
-          DEBUG_PRINTLN(F("LEFT/(BACK)SELECT"), 0);
-          tm.select();
-          break;
-        case BUTTON_DOWN:
-          DEBUG_PRINTLN(F("DOWN/DecreaseSensitivity())"), 0);
-          DecreaseSensitivity();
-          break;
-        case BUTTON_UP:
-          DEBUG_PRINTLN(F("UP/IncreaseSensitivity()"), 0);
-          IncreaseSensitivity();
-          break;
-        }
-      break;
-    case SETECHO:
-      switch (new_button) {
-        case BUTTON_SELECT:
-          DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
-          tm.select();
-          break;
-        case BUTTON_LEFT:
-          DEBUG_PRINTLN(F("LEFT/(BACK)SELECT"), 0);
-          tm.select();
-          break;
-        case BUTTON_DOWN:
-          DEBUG_PRINTLN(F("DOWN/DecreaseEchoProtect();)"), 0);
-          DecreaseEchoProtect();
-          break;
-        case BUTTON_UP:
-          DEBUG_PRINTLN(F("UP/IncreaseEchoProtect();"), 0);
-          IncreaseEchoProtect();
-          break;
-        }
-      break;
+    }
   }
 }
 

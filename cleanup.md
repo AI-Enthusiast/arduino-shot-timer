@@ -3,7 +3,7 @@ Looking at this Arduino shot timer code, here are several ways I could help clea
 ## Key Cleanup Opportunities:
 
 1. **Reduce code duplication** - Many functions like `NextShot()`/`PreviousShot()`, `IncreaseDelay()`/`DecreaseDelay()`, etc. have nearly identical code
-2. **Refactor large switch statements** - The `ButtonListener()` function has a massive nested switch statement (lines 1442-1682) that could be simplified
+2. **✅ COMPLETED - Refactor large switch statements** - The `ButtonListener()` function had a massive nested switch statement (~300 lines) that has been refactored into a clean table-driven design using function pointers. See `cleanup/2/` for details.
 3. **Extract magic numbers** - Many hardcoded values like 625, 650, 255 should be constants
 4. **Simplify state management** - Create helper functions or use a state machine pattern
 5. **Consolidate LCD operations** - Many repeated LCD print patterns
