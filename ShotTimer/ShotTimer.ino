@@ -315,7 +315,107 @@ enum ProgramState {
   SETBEEP,      // 7 - Setting Beep
   SETSENS,      // 8 - Setting Sensitivity 
   SETECHO       // 9 - Setting Echo
- } g_current_state; 
+ } g_current_state;
+
+//////////////////////////////
+// State Management Helper Functions
+//////////////////////////////
+
+// Function pointer type for state handlers
+typedef void (*StateHandler)();
+
+// State entry handlers - called when entering a state
+void EnterMenuState();
+void EnterTimerState();
+void EnterReviewState();
+void EnterParStateState();
+void EnterParTimesState();
+void EnterIndParState();
+void EnterDelayState();
+void EnterRofDrawState();
+void EnterBeepState();
+void EnterSensState();
+void EnterEchoState();
+
+// State exit handlers - called when leaving a state
+void ExitMenuState();
+void ExitTimerState();
+void ExitReviewState();
+void ExitParStateState();
+void ExitParTimesState();
+void ExitIndParState();
+void ExitDelayState();
+void ExitRofDrawState();
+void ExitBeepState();
+void ExitSensState();
+void ExitEchoState();
+
+// Centralized state transition function
+void TransitionToState(ProgramState new_state) {
+  if (g_current_state == new_state) {
+    return; // Already in target state
+  }
+
+  DEBUG_PRINT(F("State transition: "));
+  DEBUG_PRINT(g_current_state);
+  DEBUG_PRINT(F(" -> "));
+  DEBUG_PRINTLN(new_state, 0);
+
+  // Call exit handler for current state
+  switch (g_current_state) {
+    case MENU:        ExitMenuState(); break;
+    case TIMER:       ExitTimerState(); break;
+    case REVIEW:      ExitReviewState(); break;
+    case SETPARSTATE: ExitParStateState(); break;
+    case SETPARTIMES: ExitParTimesState(); break;
+    case SETINDPAR:   ExitIndParState(); break;
+    case SETDELAY:    ExitDelayState(); break;
+    case SETROFDRAW:  ExitRofDrawState(); break;
+    case SETBEEP:     ExitBeepState(); break;
+    case SETSENS:     ExitSensState(); break;
+    case SETECHO:     ExitEchoState(); break;
+  }
+
+  // Update state
+  ProgramState old_state = g_current_state;
+  g_current_state = new_state;
+
+  // Call entry handler for new state
+  switch (new_state) {
+    case MENU:        EnterMenuState(); break;
+    case TIMER:       EnterTimerState(); break;
+    case REVIEW:      EnterReviewState(); break;
+    case SETPARSTATE: EnterParStateState(); break;
+    case SETPARTIMES: EnterParTimesState(); break;
+    case SETINDPAR:   EnterIndParState(); break;
+    case SETDELAY:    EnterDelayState(); break;
+    case SETROFDRAW:  EnterRofDrawState(); break;
+    case SETBEEP:     EnterBeepState(); break;
+    case SETSENS:     EnterSensState(); break;
+    case SETECHO:     EnterEchoState(); break;
+  }
+}
+
+// Check if currently in a specific state
+boolean IsInState(ProgramState state) {
+  return g_current_state == state;
+}
+
+// Check if in any of the settings states
+boolean IsInSettingsState() {
+  return g_current_state == SETDELAY ||
+         g_current_state == SETROFDRAW ||
+         g_current_state == SETBEEP ||
+         g_current_state == SETSENS ||
+         g_current_state == SETECHO;
+}
+
+// Check if in any of the par time states
+boolean IsInParState() {
+  return g_current_state == SETPARSTATE ||
+         g_current_state == SETPARTIMES ||
+         g_current_state == SETINDPAR;
+}
 
 //////////////////////////////
 // Instantiation //@TODO: should maybe have a settings object and timer object? 
@@ -353,6 +453,175 @@ Menu main_menu(kMainName);
 // must be prototyped manually
 // A prototype is simply an empty declaration
 ////////////////////////////////////////////////////////////
+
+//////////////////////////////
+// State Entry Handlers
+//////////////////////////////
+
+void EnterMenuState() {
+  DEBUG_PRINTLN(F("Enter MENU state"), 0);
+  g_lcd.setBacklight(WHITE);
+  RenderMenu();
+}
+
+void EnterTimerState() {
+  DEBUG_PRINTLN(F("Enter TIMER state"), 0);
+  // State entry handled by on_menu_start_selected
+}
+
+void EnterReviewState() {
+  DEBUG_PRINTLN(F("Enter REVIEW state"), 0);
+  // State entry handled by on_menu_review_selected
+}
+
+void EnterParStateState() {
+  DEBUG_PRINTLN(F("Enter SETPARSTATE state"), 0);
+  g_lcd.clear();
+  g_lcd.setCursor(0, 0);
+  g_lcd.print(F("Par Times"));
+  g_lcd.setCursor(0, 1);
+  if (g_par_enabled == false) {
+    lcd_print_p(&g_lcd, kDisabled);
+  } else {
+    lcd_print_p(&g_lcd, kEnabled);
+  }
+}
+
+void EnterParTimesState() {
+  DEBUG_PRINTLN(F("Enter SETPARTIMES state"), 0);
+  // State entry handled by on_menu_par_times_selected
+}
+
+void EnterIndParState() {
+  DEBUG_PRINTLN(F("Enter SETINDPAR state"), 0);
+  g_lcd.setBacklight(GREEN);
+  g_lcd.setCursor(0, 0);
+  g_lcd.print(F("Edit"));
+  lcd_print_p(&g_lcd, kClearLine);
+  g_lcd.setCursor(0, 1);
+  g_lcd.print(F("P"));
+  lcd_print(&g_lcd, g_current_par + 1, LCD_DISPLAY_WIDTH_2);
+  g_lcd.setCursor(4, 1);
+  if (g_current_par > 0) {
+    lcd_print_p(&g_lcd, kPlus);
+  } else {
+    lcd_print_p(&g_lcd, kSpace);
+  }
+  g_lcd.setCursor(5, 1);
+  lcd_print_time(&g_lcd, g_par_times[g_current_par], LCD_TIME_WIDTH);
+  g_par_cursor = PAR_CURSOR_DEFAULT;
+  LCDCursor();
+}
+
+void EnterDelayState() {
+  DEBUG_PRINTLN(F("Enter SETDELAY state"), 0);
+  g_lcd.clear();
+  g_lcd.setCursor(0, 0);
+  g_lcd.print(F("Start Delay"));
+  g_lcd.setCursor(0, 1);
+  if (g_delay_time > DELAY_SETTING_RANDOM_1TO4) {
+    lcd_print_p(&g_lcd, kRan2to6);
+  } else if (g_delay_time == DELAY_SETTING_RANDOM_1TO4) {
+    lcd_print_p(&g_lcd, kRan1to4);
+  } else {
+    g_lcd.print(g_delay_time);
+  }
+}
+
+void EnterRofDrawState() {
+  DEBUG_PRINTLN(F("Enter SETROFDRAW state"), 0);
+  g_lcd.clear();
+  g_lcd.setCursor(0, 0);
+  g_lcd.print(F("Incl Draw Shot"));
+  g_lcd.setCursor(0, 1);
+  if (g_include_draw == false) {
+    lcd_print_p(&g_lcd, kDisabled);
+  } else {
+    lcd_print_p(&g_lcd, kEnabled);
+  }
+}
+
+void EnterBeepState() {
+  DEBUG_PRINTLN(F("Enter SETBEEP state"), 0);
+  g_lcd.clear();
+  g_lcd.setCursor(0, 0);
+  g_lcd.print(F("Beep Volume"));
+  g_lcd.setCursor(0, 1);
+  g_lcd.print(g_beep_vol);
+}
+
+void EnterSensState() {
+  DEBUG_PRINTLN(F("Enter SETSENS state"), 0);
+  g_lcd.clear();
+  g_lcd.setCursor(0, 0);
+  g_lcd.print(F("Sensitivity"));
+  g_lcd.setCursor(0, 1);
+  g_lcd.print(g_sensitivity);
+}
+
+void EnterEchoState() {
+  DEBUG_PRINTLN(F("Enter SETECHO state"), 0);
+  g_lcd.clear();
+  g_lcd.setCursor(0, 0);
+  g_lcd.print(F("Echo Protect"));
+  g_lcd.setCursor(0, 1);
+  g_lcd.print(g_sample_window);
+}
+
+//////////////////////////////
+// State Exit Handlers
+//////////////////////////////
+
+void ExitMenuState() {
+  // No cleanup needed for MENU state
+}
+
+void ExitTimerState() {
+  // No cleanup needed for TIMER state
+}
+
+void ExitReviewState() {
+  // No cleanup needed for REVIEW state
+}
+
+void ExitParStateState() {
+  // No cleanup needed for SETPARSTATE
+}
+
+void ExitParTimesState() {
+  // No cleanup needed for SETPARTIMES
+}
+
+void ExitIndParState() {
+  DEBUG_PRINTLN(F("Exit SETINDPAR state"), 0);
+  g_lcd.setBacklight(WHITE);
+}
+
+void ExitDelayState() {
+  DEBUG_PRINTLN(F("Save Delay setting"), 0);
+  g_delay_setting_e = g_delay_time;
+}
+
+void ExitRofDrawState() {
+  DEBUG_PRINTLN(F("Save ROF/Draw setting"), 0);
+  g_rof_draw_setting_e = g_include_draw;
+}
+
+void ExitBeepState() {
+  DEBUG_PRINTLN(F("Save Beep setting"), 0);
+  g_beep_setting_e = g_beep_vol;
+}
+
+void ExitSensState() {
+  DEBUG_PRINTLN(F("Save Sensitivity setting"), 0);
+  g_sens_setting_e = g_sensitivity;
+  SensToThreshold();
+}
+
+void ExitEchoState() {
+  DEBUG_PRINTLN(F("Save Echo setting"), 0);
+  g_sample_setting_e = g_sample_window;
+}
 
 //////////////////////////////
 // Render the current menu screen
@@ -414,7 +683,6 @@ int SampleSound() {
 
 void on_menu_start_selected(MenuItem* p_menu_item) {
   DEBUG_PRINTLN(F("Starting Timer"),0);
-  g_current_state = TIMER;
   g_lcd.setBacklight(GREEN);
   // reset the values of the array of shots to 0 NOT <= because g_current_shot 
   // is incremented at the end of the last one recorded
@@ -434,6 +702,7 @@ void on_menu_start_selected(MenuItem* p_menu_item) {
   g_lcd.print(F("Last:")); //10 chars
   BEEP();
   g_shot_chrono.restart();
+  TransitionToState(TIMER);
 }
 
 //////////////////////////////
@@ -541,12 +810,8 @@ void RecordShot() {
 // g_review_shot is the shot being reviewed
 
 void on_menu_review_selected(MenuItem* p_menu_item) {
-  if(g_current_state != REVIEW){
-    DEBUG_PRINTLN(F("Enter REVIEW Mode"), 0);
-    DEBUG_PRINTLN(g_current_state, 0);
-    g_current_state = REVIEW;
-    DEBUG_PRINTLN(g_current_state, 0);
-    //DEBUG FOR LOOP - PRINT ALL SHOT TIMES IN THE STRING TO SERIAL 
+  if(!IsInState(REVIEW)){
+    //DEBUG FOR LOOP - PRINT ALL SHOT TIMES IN THE STRING TO SERIAL
     // for (int t = 0; t < g_current_shot; t++) {
     //   DEBUG_PRINT_P(kShotNum);
     //   DEBUG_PRINT(t + 1);
@@ -573,11 +838,9 @@ void on_menu_review_selected(MenuItem* p_menu_item) {
                       g_shot_times[g_review_shot - 1], 6);
     }
     DEBUG_PRINTLN(tm.get_current_menu()->get_name(),0);
+    TransitionToState(REVIEW);
   } else {
-    DEBUG_PRINTLN(F("Return to Menu"), 0);
-    DEBUG_PRINTLN(g_current_state, 0);
-    g_current_state = MENU;
-    RenderMenu();
+    TransitionToState(MENU);
   }
 }
 
@@ -677,28 +940,11 @@ void RateOfFire(boolean* draw) {
 //////////////////////////////
 
 void on_menu_start_delay_selected(MenuItem* p_menu_item) {
-  if(g_current_state != SETDELAY){
-    DEBUG_PRINTLN(F("Enter SETDELAY Mode"), 0);
-    g_current_state = SETDELAY;
-    g_lcd.clear();
-    g_lcd.setCursor(0, 0);
-    g_lcd.print(F("Start Delay"));
-    g_lcd.setCursor(0, 1);
-    if (g_delay_time > 11) {
-      lcd_print_p(&g_lcd, kRan2to6);
-    }
-    else if (g_delay_time == 11) {
-      lcd_print_p(&g_lcd, kRan1to4);
-    }
-    else {
-      g_lcd.print(g_delay_time);
-    }
+  if(!IsInState(SETDELAY)){
+    TransitionToState(SETDELAY);
   }
   else {
-    DEBUG_PRINTLN(F("Save Delay and Return to Menu"), 0);
-    g_delay_setting_e = g_delay_time;
-    g_current_state = MENU;
-    RenderMenu();
+    TransitionToState(MENU);
   }
 }
 
@@ -770,27 +1016,11 @@ void StartDelay() {
 void on_menu_rof_selected(MenuItem* p_menu_item) {
   DEBUG_PRINT(F("State before select: ")); DEBUG_PRINTLN(g_current_state,0);
   DEBUG_PRINTLN(tm.get_current_menu()->get_name(),0);
-  if(g_current_state != SETROFDRAW){
-    DEBUG_PRINTLN(F("Enter SETROFDRAW Mode"),0);
-    g_current_state = SETROFDRAW;
-    DEBUG_PRINT(F("State after select: ")); DEBUG_PRINTLN(g_current_state,0);
-    g_lcd.clear();
-    g_lcd.setCursor(0, 0);
-    g_lcd.print(F("Include Draw"));
-    g_lcd.setCursor(0, 1);
-    if (g_include_draw == false) {
-      lcd_print_p(&g_lcd, kDisabled);
-    }
-    else {
-      lcd_print_p(&g_lcd, kEnabled);
-    }
+  if(!IsInState(SETROFDRAW)){
+    TransitionToState(SETROFDRAW);
   }
   else {
-    DEBUG_PRINTLN(F("Save g_include_draw and Return to Menu"), 0);
-    g_rof_draw_setting_e = g_include_draw;
-    g_current_state = MENU;
-    DEBUG_PRINT(F("State after select: ")); DEBUG_PRINTLN(g_current_state,0);
-    RenderMenu();
+    TransitionToState(MENU);
   }
 }
 
@@ -816,20 +1046,11 @@ void ToggleIncludeDraw() {
 //////////////////////////////
 
 void on_menu_buzzer_selected(MenuItem* p_menu_item) {
-  if(g_current_state != SETBEEP){
-    DEBUG_PRINTLN(F("Enter SETBEEP Mode"), 0);
-    g_current_state = SETBEEP;
-    g_lcd.clear();
-    g_lcd.setCursor(0, 0);
-    g_lcd.print(F("Buzzer Volume"));
-    g_lcd.setCursor(0, 1);
-    lcd_print(&g_lcd, g_beep_vol, 2);
+  if(!IsInState(SETBEEP)){
+    TransitionToState(SETBEEP);
   }
   else {
-    DEBUG_PRINTLN(F("Save BeepVol and Return to Menu"), 0);
-    g_beep_setting_e = g_beep_vol;
-    g_current_state = MENU;
-    RenderMenu();
+    TransitionToState(MENU);
   }
 }
 
@@ -877,20 +1098,11 @@ void DecreaseBeepVol() {
 //////////////////////////////
 
 void on_menu_sensitivity_selected(MenuItem* p_menu_item) {
-    if(g_current_state != SETSENS){
-    DEBUG_PRINTLN(F("Enter SETSENS Mode"), 0);
-    g_current_state = SETSENS;
-    g_lcd.clear();
-    g_lcd.setCursor(0, 0);
-    g_lcd.print(F("Sensitivity"));
-    g_lcd.setCursor(0, 1);
-    lcd_print(&g_lcd, g_sensitivity, 2);
+    if(!IsInState(SETSENS)){
+    TransitionToState(SETSENS);
   }
   else {
-    DEBUG_PRINTLN(F("Save Sensitivity and Return to Menu"), 0);
-    g_sens_setting_e = g_sensitivity;
-    g_current_state = MENU;
-    RenderMenu();
+    TransitionToState(MENU);
   }
 }
 
@@ -919,21 +1131,13 @@ void DecreaseSensitivity() {
 //////////////////////////////
 
 void on_menu_echo_selected(MenuItem* p_menu_item) {
-  if(g_current_state != SETECHO){
-    DEBUG_PRINTLN(F("Enter SETECHO Mode"), 0);
-    g_current_state = SETECHO;
-    g_lcd.clear();
-    g_lcd.setCursor(0, 0);
-    g_lcd.print(F("Echo Protect"));
-    g_lcd.setCursor(0, 1);
+  if(!IsInState(SETECHO)){
+    TransitionToState(SETECHO);
     g_lcd.print(g_sample_window);
     lcd_print_p(&g_lcd, kMS);
   }
   else {
-    DEBUG_PRINTLN(F("Save Echo and Return to Menu"), 0);
-    g_sample_setting_e = g_sample_window;
-    g_current_state = MENU;
-    RenderMenu();
+    TransitionToState(MENU);
   }
 }
 
@@ -998,26 +1202,11 @@ void SensToThreshold() {
 void on_menu_par_state_selected(MenuItem* p_menu_item) {
   DEBUG_PRINT(F("State before select: ")); DEBUG_PRINTLN(g_current_state,0);
   DEBUG_PRINTLN(tm.get_current_menu()->get_name(),0);
-  if(g_current_state != SETPARSTATE){
-    DEBUG_PRINTLN(F("Enter SETPARSTATE Mode"),0);
-    g_current_state = SETPARSTATE;
-    DEBUG_PRINT(F("State after select: ")); DEBUG_PRINTLN(g_current_state,0);
-    g_lcd.clear();
-    g_lcd.setCursor(0, 0);
-    g_lcd.print(F("Par Times"));
-    g_lcd.setCursor(0, 1);
-    if (g_par_enabled == false) {
-      lcd_print_p(&g_lcd, kDisabled);
-    }
-    else {
-      lcd_print_p(&g_lcd, kEnabled);
-    }
+  if(!IsInState(SETPARSTATE)){
+    TransitionToState(SETPARSTATE);
   }
   else {
-    DEBUG_PRINTLN(F("Return to Menu"), 0);
-    g_current_state = MENU;
-    DEBUG_PRINT(F("State after select: ")); DEBUG_PRINTLN(g_current_state,0);
-    RenderMenu();
+    TransitionToState(MENU);
   }
 }
 
@@ -1045,10 +1234,7 @@ void ToggleParState() {
 void on_menu_par_times_selected(MenuItem* p_menu_item) {
     DEBUG_PRINTLN_P(tm.get_current_menu()->get_selected()->get_name(),0);
     DEBUG_PRINT(F("State before select: ")); DEBUG_PRINTLN(g_current_state,0);
-  if(g_current_state != SETPARTIMES){
-    DEBUG_PRINTLN(F("Enter SETPARTIMES Mode"), 0);
-    g_current_state = SETPARTIMES;
-    DEBUG_PRINT(F("State after select: ")); DEBUG_PRINTLN(g_current_state,0);
+  if(!IsInState(SETPARTIMES)){
     g_lcd.clear();
     g_lcd.setCursor(0, 0);
     g_lcd.print(F("<<"));
@@ -1065,11 +1251,10 @@ void on_menu_par_times_selected(MenuItem* p_menu_item) {
     }
     lcd_print_time(&g_lcd, g_par_times[g_current_par], LCD_TIME_WIDTH);
     DEBUG_PRINTLN_P(tm.get_current_menu()->get_selected()->get_name(),0);
+    TransitionToState(SETPARTIMES);
   }
   else {
-    g_current_state = MENU;
-    DEBUG_PRINT(F("State after select: ")); DEBUG_PRINTLN(g_current_state,0);
-    RenderMenu();
+    TransitionToState(MENU);
   }
 }
 
@@ -1127,33 +1312,13 @@ void ParUp() {
 //////////////////////////////
 
 void EditPar() {
-  if(g_current_state != SETINDPAR){
-    DEBUG_PRINTLN(F("Enter SETINDPAR Mode"), 0);
-    g_current_state = SETINDPAR;
-    g_lcd.setBacklight(GREEN);
-    g_lcd.setCursor(0, 0);
-    g_lcd.print(F("Edit"));
-    lcd_print_p(&g_lcd, kClearLine);
-    g_lcd.setCursor(0, 1);
-    g_lcd.print(F("P")); 
-    lcd_print(&g_lcd, g_current_par + 1, LCD_DISPLAY_WIDTH_2);
-    g_lcd.setCursor(4, 1);
-    if (g_current_par > 0) {
-      lcd_print_p(&g_lcd, kPlus);
-    }
-    else {
-      lcd_print_p(&g_lcd, kSpace);
-    }
-    g_lcd.setCursor(5, 1);
-    lcd_print_time(&g_lcd, g_par_times[g_current_par], LCD_TIME_WIDTH);
-    g_par_cursor = PAR_CURSOR_DEFAULT; //reset cursor to the seconds position
-    LCDCursor();
+  if(!IsInState(SETINDPAR)){
+    TransitionToState(SETINDPAR);
   }
   else {
     DEBUG_PRINTLN(F("Return to SETPARTIMES"), 0);
     Serial.print(g_current_state);
     DEBUG_PRINTLN_P(tm.get_current_menu()->get_selected()->get_name(),0);
-    g_lcd.setBacklight(WHITE);
     tm.select();
   }
 }
@@ -1456,13 +1621,13 @@ void HandleMenuSelect() {
   DEBUG_PRINTLN(F("SELECT/SELECT"), 0);
   DEBUG_PRINTLN_P(tm.get_current_menu()->get_name(),0);
   tm.select();
-  if(g_current_state == MENU){RenderMenu();}
+  if(IsInState(MENU)){RenderMenu();}
 }
 
 void HandleMenuRight() {
   DEBUG_PRINTLN(F("RIGHT/SELECT"), 0);
   tm.select();
-  if(g_current_state == MENU){RenderMenu();}
+  if(IsInState(MENU)){RenderMenu();}
 }
 
 void HandleMenuLeft() {
